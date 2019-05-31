@@ -17,7 +17,7 @@ import tflearn
 import argparse
 import pprint as pp
 
-from replay_buffer import ReplayBuffer
+from DDPG.replay_buffer import ReplayBuffer
 
 
 # ===========================
