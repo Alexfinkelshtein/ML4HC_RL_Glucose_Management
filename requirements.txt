@@ -1,0 +1,6 @@
+simglucose
+tflearn
+tensorflow
+gym
+numpy
+tqdm
