@@ -15,6 +15,7 @@ import os
 from datetime import datetime
 from datetime import timedelta
 import platform
+from gym import spaces
 
 
 logger = logging.getLogger(__name__)
@@ -297,7 +298,7 @@ def build_envs(scenario, start_time):
     envs = [local_build_env(p) for p in patient_names]
     return envs
 
-def our_build_envs(scenario, start_time,patient_names, cgm_sensor_name, cgm_seed, insulin_pump_name):
+def our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, insulin_pump_name):
     def local_build_env(pname):
         patient = T1DPatient.withName(pname)
         cgm_sensor = CGMSensor.withName(cgm_sensor_name, seed=cgm_seed)

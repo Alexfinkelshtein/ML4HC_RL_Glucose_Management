@@ -31,6 +31,7 @@ class BBController(Controller):
             sample_time)
         return action
 
+
     def _bb_policy(self, name, meal, glucose, env_sample_time):
         if any(self.quest.Name.str.match(name)):
             q = self.quest[self.quest.Name.str.match(name)]

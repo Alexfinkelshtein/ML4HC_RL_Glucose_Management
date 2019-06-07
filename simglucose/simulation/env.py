@@ -5,11 +5,14 @@ from datetime import timedelta
 import logging
 from collections import namedtuple
 from simglucose.simulation.rendering import Viewer
+import numpy as np
+from gym import spaces
 
 try:
     from rllab.envs.base import Step
 except ImportError:
     _Step = namedtuple("Step", ["observation", "reward", "done", "info"])
+
 
     def Step(observation, reward, done, **kwargs):
         """
@@ -18,7 +21,6 @@ except ImportError:
         Put extra diagnostic info in the kwargs
         """
         return _Step(observation, reward, done, kwargs)
-
 
 Observation = namedtuple('Observation', ['CGM'])
 logger = logging.getLogger(__name__)
@@ -34,12 +36,18 @@ def risk_diff(BG_last_hour):
 
 
 class T1DSimEnv(object):
+
     def __init__(self, patient, sensor, pump, scenario):
         self.patient = patient
         self.sensor = sensor
         self.pump = pump
         self.scenario = scenario
+        self.observation_space = spaces.Box(20, 350, (1, 1))
+        self.action_space = spaces.Box(0, 400, (2, 1))
         self._reset()
+
+    def seed(self, rand_seed):
+        self.sensor.seed = rand_seed
 
     @property
     def time(self):

@@ -347,7 +347,8 @@ def train(sess, env, args, actor, critic, actor_noise):
 def main(args):
     with tf.Session() as sess:
 
-        env = gym.make(args['env'])
+        # env = gym.make(args['env'])
+        env = args['env']
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
@@ -356,7 +357,12 @@ def main(args):
         action_dim = env.action_space.shape[0]
         action_bound = env.action_space.high
         # Ensure action bound is symmetric
-        assert (env.action_space.high == -env.action_space.low)
+        # TODO: decide about action space with respect to symmetry
+        # TODO consider:
+        # def rescale_actions(tanh_output, low, high):
+        #     range = high - low
+        #     return tanh_output * range / 2 + (low + (0.5 * range))
+        # assert (env.action_space.high == -env.action_space.low)  # TODO tackle symmetry
 
         actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
                              float(args['actor_lr']), float(args['tau']),
@@ -381,7 +387,7 @@ def main(args):
         if args['use_gym_monitor']:
             env.monitor.close()
 
-
+ # TODO:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
 
