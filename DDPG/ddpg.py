@@ -276,8 +276,8 @@ def train(sess, env, args, actor, critic, actor_noise):
 
     for i in range(int(args['max_episodes'])):
 
-        # s = env.reset()
-        s = env.reset().observation  # CHANGED
+        s = env.reset()
+        # s = env.reset().observation  # CHANGED
 
         ep_reward = 0
         ep_ave_max_q = 0
@@ -289,16 +289,16 @@ def train(sess, env, args, actor, critic, actor_noise):
 
             # Added exploration noise
             # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
-            # a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
-            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()  # CHANGED
+            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
+            # a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()  # CHANGED
 
             s2, r, terminal, info = env.step(a[0])
 
-            replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a[0], (actor.a_dim,)), r,  # CHANGED
-                              terminal, np.reshape(s2, (actor.s_dim,)))
+            # replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a[0], (actor.a_dim,)), r,  # CHANGED
+            #                   terminal, np.reshape(s2, (actor.s_dim,)))
 
-            # replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
-            #                               terminal, np.reshape(s2, (actor.s_dim,)))
+            replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
+                                          terminal, np.reshape(s2, (actor.s_dim,)))
 
             # Keep adding experience to the memory until
             # there are at least minibatch size samples
@@ -352,8 +352,8 @@ def train(sess, env, args, actor, critic, actor_noise):
 def main(args):
     with tf.Session() as sess:
 
-        # env = gym.make(args['env'])
-        env = args['env']
+        env = gym.make(args['env'])
+        # env = args['env']
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
@@ -392,7 +392,7 @@ def main(args):
         if args['use_gym_monitor']:
             env.monitor.close()
 
- # TODO:
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
 

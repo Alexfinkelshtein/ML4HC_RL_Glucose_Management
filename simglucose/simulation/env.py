@@ -42,8 +42,8 @@ class T1DSimEnv(object):
         self.sensor = sensor
         self.pump = pump
         self.scenario = scenario
-        self.observation_space = spaces.Box(20, 350, (1, 1))
-        self.action_space = spaces.Box(0, 400, (2, 1))
+        # self.observation_space = spaces.Box(20, 350, (1, 1))
+        # self.action_space = spaces.Box(0, 400, (2, 1))
         self._reset()
 
     def seed(self, rand_seed):
