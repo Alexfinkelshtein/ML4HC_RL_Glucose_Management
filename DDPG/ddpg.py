@@ -276,7 +276,7 @@ def train(sess, env, args, actor, critic, actor_noise):
 
     for i in range(int(args['max_episodes'])):
 
-        s = env.reset()
+        s = env.reset().observation  # TODO temp
 
         ep_reward = 0
         ep_ave_max_q = 0
@@ -293,7 +293,7 @@ def train(sess, env, args, actor, critic, actor_noise):
             s2, r, terminal, info = env.step(a[0])
 
             replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
-                              terminal, np.reshape(s2, (actor.s_dim,)))
+                              terminal, np.reshape(s2.observation, (actor.s_dim,)))
 
             # Keep adding experience to the memory until
             # there are at least minibatch size samples

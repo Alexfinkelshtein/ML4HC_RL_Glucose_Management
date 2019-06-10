@@ -14,7 +14,10 @@ cgm_sensor_name = get_cgm_sensor(selection=1)
 
 sim_time = 24
 controller = BBController()
-start_time = 0
+start_time = '0'
+now = datetime.now()
+start_hour = timedelta(hours=float(0))
+start_time = datetime.combine(now.date(), datetime.min.time()) + start_hour
 scenario = CustomScenario(start_time=start_time, scenario=[(1, 300)])
 save_path = ''
 animate = True
@@ -38,6 +41,7 @@ args = {
 }
 
 main(args)
+
 # sim = SimObj(envs, controller, sim_time, animate=True, path=None)
 #
 # sim = create_sim_instance(sim_time=sim_time,
