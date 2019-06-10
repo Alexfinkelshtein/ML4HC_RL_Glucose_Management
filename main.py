@@ -7,8 +7,8 @@ from DDPG.ddpg import main
 
 ##
 patient_names = get_patients([1, 2])
-
-pump = get_insulin_pump(selection=1)
+pump_name = get_insulin_pump(selection=2)
+# pump = InsulinPump.withName(pump_name)
 cgm_seed = 5
 cgm_sensor_name = get_cgm_sensor(selection=1)
 
@@ -21,7 +21,7 @@ start_time = datetime.combine(now.date(), datetime.min.time()) + start_hour
 scenario = CustomScenario(start_time=start_time, scenario=[(1, 300)])
 save_path = ''
 animate = True
-envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump)
+envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name)
 env = envs[0]
 args = {
     'env': env,

@@ -276,7 +276,8 @@ def train(sess, env, args, actor, critic, actor_noise):
 
     for i in range(int(args['max_episodes'])):
 
-        s = env.reset().observation  # TODO temp
+        # s = env.reset()
+        s = env.reset().observation  # CHANGED
 
         ep_reward = 0
         ep_ave_max_q = 0
@@ -288,12 +289,16 @@ def train(sess, env, args, actor, critic, actor_noise):
 
             # Added exploration noise
             # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
-            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
+            # a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
+            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()  # CHANGED
 
             s2, r, terminal, info = env.step(a[0])
 
-            replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
-                              terminal, np.reshape(s2.observation, (actor.s_dim,)))
+            replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a[0], (actor.a_dim,)), r,  # CHANGED
+                              terminal, np.reshape(s2, (actor.s_dim,)))
+
+            # replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
+            #                               terminal, np.reshape(s2, (actor.s_dim,)))
 
             # Keep adding experience to the memory until
             # there are at least minibatch size samples
