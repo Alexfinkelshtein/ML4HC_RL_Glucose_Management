@@ -86,10 +86,13 @@ class T1DSimEnv(gym.Env):
     def _render(self, mode='human', close=False):
         self.env.render(close=close)
 
+# TODO: adjust obervation and action space
     @property
     def action_space(self):
-        ub = self.env.pump._params['max_basal']
-        return spaces.Box(low=0, high=ub, shape=(1,))
+        ub_basal = self.env.pump._params['max_basal']
+        # TODO: add bolus
+        # ub = self.env.pump._params['max_bolus']
+        return spaces.Box(low=0, high=ub_basal, shape=(1,))
 
     @property
     def observation_space(self):

@@ -84,7 +84,8 @@ class ActorNetwork(object):
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
-        w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
+        # w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
+        w_init = tflearn.initializations.uniform(minval=0, maxval=0.03)
         out = tflearn.fully_connected(
             net, self.a_dim, activation='tanh', weights_init=w_init)
         # Scale output to -action_bound to action_bound
@@ -243,7 +244,7 @@ def build_summaries():
     episode_reward = tf.Variable(0.)
     tf.summary.scalar("Reward", episode_reward)
     episode_ave_max_q = tf.Variable(0.)
-    tf.summary.scalar("Qmax Value", episode_ave_max_q)
+    tf.summary.scalar("Qmax_Value", episode_ave_max_q)
 
     summary_vars = [episode_reward, episode_ave_max_q]
     summary_ops = tf.summary.merge_all()

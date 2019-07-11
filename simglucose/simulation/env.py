@@ -56,10 +56,10 @@ class T1DSimEnv(object):
     def mini_step(self, action):
         # current action
         patient_action = self.scenario.get_action(self.time)
-        # basal = self.pump.basal(action.basal)
-        basal = self.pump.basal(action[0])  # CHANGED
-        # bolus = self.pump.bolus(action.bolus)
-        bolus = self.pump.bolus(action[1])  # CHANGED
+        basal = self.pump.basal(action.basal)
+        # basal = self.pump.basal(action[0])  # CHANGED
+        bolus = self.pump.bolus(action.bolus)
+        # bolus = self.pump.bolus(action[1])  # CHANGED
         insulin = basal + bolus
         CHO = patient_action.meal
         patient_mdl_act = Action(insulin=insulin, CHO=CHO)
