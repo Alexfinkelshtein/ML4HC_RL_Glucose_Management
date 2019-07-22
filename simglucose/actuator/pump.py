@@ -39,5 +39,5 @@ class InsulinPump(object):
         return bas
 
     def reset(self):
-        logger.info('Resetting insulin pump ...')
+        # logger.info('Resetting insulin pump ...')  # REMEMBER: removed
         pass

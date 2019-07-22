@@ -1,8 +1,12 @@
-#my first commit
-
+from DDPG.ddpg import main
+from gym.envs.registration import register
+import os
+import datetime
+import numpy as np
 # imports
 from simglucose.simulation.user_interface import *
-from DDPG.ddpg import main
+import gym
+import logging
 # import .simglucose.simulation.user_interface as sim_inter
 
 ##
@@ -23,7 +27,6 @@ from DDPG.ddpg import main
 # animate = True
 # envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name)
 # env = envs[0]
-import gym
 
 # Register gym environment. By specifying kwargs,
 # you are able to choose which patient to simulate.
@@ -34,36 +37,6 @@ import gym
 #         return -1
 #     if cgm < hypo_thresh:
 #         return -5
-
-from gym.envs.registration import register
-register(
-    id='simglucose-adolescent2-v0',
-    entry_point='simglucose.envs:T1DSimEnv',
-    kwargs={'patient_name': 'adolescent#002'}#, 'reward_fun': reward}
-)
-
-# env = gym.make('simglucose-adolescent2-v0')
-
-
-args = {
-    'env': 'simglucose-adolescent2-v0',
-    'random_seed': 3,
-    'actor_lr': 0.1,
-    'tau': 0.3,
-    'minibatch_size': 10,
-    'critic_lr': 0.1,
-    'gamma': 0.8,
-    'use_gym_monitor': True,
-    'render_env': True,
-    'monitor_dir': r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Monitor',
-    'buffer_size': 10,
-    'summary_dir': r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Summaries',
-    'max_episodes': 10,
-    'max_episode_len': 60*24
-}
-
-main(args)
-
 # sim = SimObj(envs, controller, sim_time, animate=True, path=None)
 #
 # sim = create_sim_instance(sim_time=sim_time,
@@ -74,3 +47,57 @@ main(args)
 # #                         animate=True)
 #
 # # simulate()
+
+
+register(
+    id='simglucose-adolescent2-v0',
+    entry_point='simglucose.envs:T1DSimEnv',
+    kwargs={'patient_name': 'adolescent#002'}#, 'reward_fun': reward}
+)
+
+env = gym.make('simglucose-adolescent2-v0')
+
+def summary_path(summaries_base):
+    rel_files = np.array(os.listdir(summaries_base))
+    files = list(map(lambda x: os.path.join(summaries_base, x), rel_files))
+    rel_dirs = rel_files[list(map(os.path.isdir, files))]
+
+    if len(rel_dirs) == 0:
+        new_dir = os.path.join(summaries_base, '0')
+    else:
+        def my_value(x):  # if not number -1
+            try:
+                return float(x)
+            except:
+                return -1
+        rel_dirs = sorted(rel_dirs, key=my_value, reverse=True)
+        new_dir = os.path.join(summaries_base, str(float(rel_dirs[0]) + 1))
+    os.makedirs(new_dir)
+    return new_dir
+
+
+summaries_base = r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Summaries'
+current_summary = summary_path(summaries_base)
+logging.basicConfig(filename=os.path.join(current_summary, 'log.log'), level=logging.INFO)
+
+args = {
+    'env': 'simglucose-adolescent2-v0',
+    'random_seed': 3,
+    'actor_lr': 0.01,
+    'tau': 0.3,
+    'minibatch_size': 50,  # horizon??
+    'critic_lr': 0.01,
+    'gamma': 0.8,
+    'use_gym_monitor': True,
+    'render_env': False,  # plot episodes
+    'monitor_dir': r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Monitor',
+    'buffer_size': 100,
+    'summary_dir': current_summary,
+    'max_episodes': 500,
+    'max_episode_len': 60*24
+}
+current_time = str(datetime.now())
+logging.info(f'Start Timestamp: {current_time}')
+logging.info(f'Arguments:\n {str(args)}')
+main(args)
+

@@ -127,7 +127,7 @@ class T1DSimEnv(object):
         self.viewer = None
 
         BG = self.patient.observation.Gsub
-        horizon = 1
+        horizon = 1  # TODO understand
         LBGI, HBGI, risk = risk_index([BG], horizon)
         CGM = self.sensor.measure(self.patient)
         self.time_hist = [self.scenario.start_time]

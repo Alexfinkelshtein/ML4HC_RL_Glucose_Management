@@ -64,7 +64,7 @@ class T1DSimEnv(gym.Env):
 
     def _step(self, action):
         # This gym only controls basal insulin
-        act = Action(basal=action, bolus=0)
+        act = Action(basal=action[0], bolus=action[1])
         if self.reward_fun is None:
             return self.env.step(act)
         else:
@@ -86,13 +86,14 @@ class T1DSimEnv(gym.Env):
     def _render(self, mode='human', close=False):
         self.env.render(close=close)
 
-# TODO: adjust obervation and action space
     @property
     def action_space(self):
         ub_basal = self.env.pump._params['max_basal']
-        # TODO: add bolus
-        # ub = self.env.pump._params['max_bolus']
-        return spaces.Box(low=0, high=ub_basal, shape=(1,))
+        lb_basal = self.env.pump._params['min_basal']
+        ub_bolus = self.env.pump._params['max_bolus']
+        lb_bolus = self.env.pump._params['min_bolus']
+        #  TODO: take care of granularity
+        return spaces.Box(low=np.array([lb_basal, lb_bolus]), high=np.array([ub_basal, ub_bolus]))
 
     @property
     def observation_space(self):
