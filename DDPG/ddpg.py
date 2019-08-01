@@ -243,10 +243,17 @@ class OrnsteinUhlenbeckActionNoise:
 def build_summaries():
     episode_reward = tf.Variable(0.)
     tf.summary.scalar("Reward", episode_reward)
+
     episode_ave_max_q = tf.Variable(0.)
     tf.summary.scalar("Qmax_Value", episode_ave_max_q)
 
-    summary_vars = [episode_reward, episode_ave_max_q]
+    basal_count = tf.Variable(0.)
+    tf.summary.scalar("Number of Basal Injections", basal_count)
+
+    bolus_count = tf.Variable(0.)
+    tf.summary.scalar("Number of Bolus Injections", bolus_count)
+
+    summary_vars = [episode_reward, episode_ave_max_q, basal_count, bolus_count]
     summary_ops = tf.summary.merge_all()
 
     return summary_ops, summary_vars
@@ -282,7 +289,8 @@ def train(sess, env, args, actor, critic, actor_noise):
 
         ep_reward = 0
         ep_ave_max_q = 0
-
+        a_basal_hist = []
+        a_bolus_hist = []
         for j in range(int(args['max_episode_len'])):
 
             if args['render_env']:
@@ -335,11 +343,16 @@ def train(sess, env, args, actor, critic, actor_noise):
 
             s = s2
             ep_reward += r
+            a_basal_hist += [a[0][0]]  #TODO make sure basal
+            a_bolus_hist += [a[0][1]]  #TODO make sure bolus
 
             if terminal:
                 summary_str = sess.run(summary_ops, feed_dict={
                     summary_vars[0]: ep_reward,
-                    summary_vars[1]: ep_ave_max_q / float(j)
+                    summary_vars[1]: ep_ave_max_q / float(j),
+                    summary_vars[2]: len(np.where(a_basal_hist)[0]),
+                    summary_vars[3]: len(np.where(a_bolus_hist)[0]),
+
                 })
 
                 writer.add_summary(summary_str, i)

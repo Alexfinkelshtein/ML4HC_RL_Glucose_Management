@@ -7,6 +7,7 @@ import numpy as np
 from simglucose.simulation.user_interface import *
 import gym
 import logging
+import json
 # import .simglucose.simulation.user_interface as sim_inter
 
 ##
@@ -98,6 +99,7 @@ args = {
 }
 current_time = str(datetime.now())
 logging.info(f'Start Timestamp: {current_time}')
-logging.info(f'Arguments:\n {str(args)}')
+args4print = json.dumps(args, sort_keys=True, indent=4)
+logging.info(f'Arguments:\n {args4print}')
 main(args)
 
