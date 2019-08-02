@@ -84,11 +84,11 @@ logging.basicConfig(filename=os.path.join(current_summary, 'log.log'), level=log
 args = {
     'env': 'simglucose-adolescent2-v0',
     'random_seed': 3,
-    'actor_lr': 0.01,
-    'tau': 0.3,
-    'minibatch_size': 50,  # horizon??
-    'critic_lr': 0.01,
-    'gamma': 0.8,
+    'actor_lr': 0.001,
+    'tau': 0.8,
+    'minibatch_size': 50,
+    'critic_lr': 0.001,
+    'gamma': 0.99,  # Discount factor acts as effective horizon: 1/(1-gamma) gamma = 0.98 -> horizon ~= 50 min
     'use_gym_monitor': True,
     'render_env': False,  # plot episodes
     'monitor_dir': r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Monitor',
@@ -102,4 +102,5 @@ logging.info(f'Start Timestamp: {current_time}')
 args4print = json.dumps(args, sort_keys=True, indent=4)
 logging.info(f'Arguments:\n {args4print}')
 main(args)
+logging.info(f'End Time: {str(datetime.now())}')
 

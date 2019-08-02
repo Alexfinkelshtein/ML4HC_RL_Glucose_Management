@@ -30,9 +30,11 @@ def risk_diff(BG_last_hour):
     if len(BG_last_hour) < 2:
         return 0
     else:
-        _, _, risk_current = risk_index([BG_last_hour[-1]], 1)
-        _, _, risk_prev = risk_index([BG_last_hour[-2]], 1)
-        return risk_prev - risk_current
+        _, _, risk_current = risk_index([BG_last_hour[-1]], 1)  # Horizon
+        _, _, risk_prev = risk_index([BG_last_hour[-2]], 1)  # Horizon
+        normalized = lambda x: x/120
+        normalized = lambda x: x
+        return normalized(risk_prev - risk_current)
 
 
 class T1DSimEnv(object):
@@ -107,7 +109,7 @@ class T1DSimEnv(object):
         self.HBGI_hist.append(HBGI)
 
         # Compute reward, and decide whether game is over
-        window_size = int(60 / self.sample_time)
+        window_size = int(60 / self.sample_time)  # Horizon
         BG_last_hour = self.CGM_hist[-window_size:]
         reward = reward_fun(BG_last_hour)
         done = BG < 70 or BG > 350

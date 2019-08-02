@@ -93,8 +93,10 @@ class T1DSimEnv(gym.Env):
         ub_bolus = self.env.pump._params['max_bolus']
         lb_bolus = self.env.pump._params['min_bolus']
         #  TODO: take care of granularity
+        # TODO adjust for history window
         return spaces.Box(low=np.array([lb_basal, lb_bolus]), high=np.array([ub_basal, ub_bolus]))
 
     @property
     def observation_space(self):
+        # TODO adjust for history window
         return spaces.Box(low=0, high=np.inf, shape=(1,))
