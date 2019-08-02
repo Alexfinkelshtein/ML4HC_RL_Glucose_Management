@@ -88,7 +88,7 @@ args = {
     'tau': 0.8,
     'minibatch_size': 50,
     'critic_lr': 0.001,
-    'gamma': 0.99,  # Discount factor acts as effective horizon: 1/(1-gamma) gamma = 0.98 -> horizon ~= 50 min
+    'gamma': 0.98,  # Discount factor acts as effective horizon: 1/(1-gamma) gamma = 0.98 -> horizon ~= 50 min
     'use_gym_monitor': True,
     'render_env': False,  # plot episodes
     'monitor_dir': r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Monitor',
@@ -97,6 +97,7 @@ args = {
     'max_episodes': 500,
     'max_episode_len': 60*24
 }
+
 current_time = str(datetime.now())
 logging.info(f'Start Timestamp: {current_time}')
 args4print = json.dumps(args, sort_keys=True, indent=4)
