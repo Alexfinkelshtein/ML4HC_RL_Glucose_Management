@@ -62,7 +62,8 @@ class T1DSimEnv(object):
         # basal = self.pump.basal(action[0])  # CHANGED
         bolus = self.pump.bolus(action.bolus)
         # bolus = self.pump.bolus(action[1])  # CHANGED
-        insulin = basal + bolus
+        action_offset = 15  # ASSUMPTION: max pump 30
+        insulin = basal + bolus + action_offset * 2  # CHANGED
         CHO = patient_action.meal
         patient_mdl_act = Action(insulin=insulin, CHO=CHO)
 
@@ -87,6 +88,9 @@ class T1DSimEnv(object):
         for _ in range(int(self.sample_time)):
             # Compute moving average as the sample measurements
             tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM = self.mini_step(action)
+            if tmp_insulin < 0:
+                print(tmp_insulin)
+                print(self.patient.t)
             CHO += tmp_CHO / self.sample_time
             insulin += tmp_insulin / self.sample_time
             BG += tmp_BG / self.sample_time
@@ -113,6 +117,8 @@ class T1DSimEnv(object):
         BG_last_hour = self.CGM_hist[-window_size:]
         reward = reward_fun(BG_last_hour)
         done = BG < 70 or BG > 350
+        done = self.patient.t == (24*60)/self.sample_time - 1*self.sample_time
+
         obs = Observation(CGM=CGM)
 
         return Step(

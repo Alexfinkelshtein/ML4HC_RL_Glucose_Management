@@ -16,14 +16,14 @@ import json
 # # pump = InsulinPump.withName(pump_name)
 # cgm_seed = 5
 # cgm_sensor_name = get_cgm_sensor(selection=1)
-
+#
 # sim_time = 24
 # controller = BBController()
 # start_time = '0'
-# now = datetime.now()
-# start_hour = timedelta(hours=float(0))
-# start_time = datetime.combine(now.date(), datetime.min.time()) + start_hour
-# scenario = CustomScenario(start_time=start_time, scenario=[(1, 300)])
+now = datetime.now()
+start_hour = timedelta(hours=float(0))
+start_time = datetime.combine(now.date(), datetime.min.time()) + start_hour
+scenario = CustomScenario(start_time=start_time, scenario=[(1, 300)])
 # save_path = ''
 # animate = True
 # envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name)
@@ -53,7 +53,7 @@ import json
 register(
     id='simglucose-adolescent2-v0',
     entry_point='simglucose.envs:T1DSimEnv',
-    kwargs={'patient_name': 'adolescent#002'}#, 'reward_fun': reward}
+    kwargs={'patient_name': 'adolescent#002', 'custom_scenario': scenario}#, 'reward_fun': reward}
 )
 
 env = gym.make('simglucose-adolescent2-v0')
@@ -81,6 +81,8 @@ summaries_base = r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Mac
 current_summary = summary_path(summaries_base)
 logging.basicConfig(filename=os.path.join(current_summary, 'log.log'), level=logging.INFO)
 
+
+sensor_sample_time = 3
 args = {
     'env': 'simglucose-adolescent2-v0',
     'random_seed': 3,
@@ -95,7 +97,7 @@ args = {
     'buffer_size': 100,
     'summary_dir': current_summary,
     'max_episodes': 500,
-    'max_episode_len': 60*24
+    'max_episode_len': 60*24/sensor_sample_time
 }
 
 current_time = str(datetime.now())

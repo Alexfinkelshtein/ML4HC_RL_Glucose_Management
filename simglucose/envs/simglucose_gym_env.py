@@ -22,7 +22,7 @@ class T1DSimEnv(gym.Env):
     '''
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, patient_name=None, reward_fun=None):
+    def __init__(self, patient_name=None, custom_scenario=None, reward_fun=None):
         '''
         patient_name must be 'adolescent#001' to 'adolescent#010',
         or 'adult#001' to 'adult#010', or 'child#001' to 'child#010'
@@ -36,7 +36,9 @@ class T1DSimEnv(gym.Env):
         sensor = CGMSensor.withName('Dexcom', seed=seeds[1])
         hour = self.np_random.randint(low=0.0, high=24.0)
         start_time = datetime(2018, 1, 1, hour, 0, 0)
-        scenario = RandomScenario(start_time=start_time, seed=seeds[2])
+        if custom_scenario is None:
+            scenario = RandomScenario(start_time=start_time, seed=seeds[2])
+        scenario = custom_scenario
         pump = InsulinPump.withName('Insulet')
         self.env = _T1DSimEnv(patient, sensor, pump, scenario)
         self.reward_fun = reward_fun
@@ -65,7 +67,7 @@ class T1DSimEnv(gym.Env):
     def _step(self, action):
         # This gym only controls basal insulin
         act = Action(basal=action[0], bolus=action[1])
-        if self.reward_fun is None:
+        if self.reward_fun is None:  #  TODO: see why reward_fun is None
             return self.env.step(act)
         else:
             return self.env.step(act, reward_fun=self.reward_fun)
@@ -94,7 +96,7 @@ class T1DSimEnv(gym.Env):
         lb_bolus = self.env.pump._params['min_bolus']
         #  TODO: take care of granularity
         # TODO adjust for history window
-        return spaces.Box(low=np.array([lb_basal, lb_bolus]), high=np.array([ub_basal, ub_bolus]))
+        return spaces.Box(low=np.array([lb_basal, lb_bolus]), high=np.array([ub_basal/2, ub_bolus/2]))
 
     @property
     def observation_space(self):
