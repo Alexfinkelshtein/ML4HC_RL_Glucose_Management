@@ -16,8 +16,12 @@ from gym import wrappers
 import tflearn
 import argparse
 import pprint as pp
+import matplotlib.pyplot as plt
+import io
+from PIL import Image
 
 from DDPG.replay_buffer import ReplayBuffer
+from tqdm import tqdm
 
 
 # ===========================
@@ -84,8 +88,8 @@ class ActorNetwork(object):
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
-        # w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
-        w_init = tflearn.initializations.uniform(minval=0, maxval=0.03)
+        w_init = tflearn.initializations.uniform(minval=-0.3, maxval=0.3)  # TODO consider xavier initialization
+        # w_init = tflearn.initializations.uniform(minval=0, maxval=0.03)
         out = tflearn.fully_connected(
             net, self.a_dim, activation='tanh', weights_init=w_init)
         # Scale output to -action_bound to action_bound
@@ -215,7 +219,8 @@ class CriticNetwork(object):
 # Taken from https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py, which is
 # based on http://math.stackexchange.com/questions/1287634/implementing-ornstein-uhlenbeck-in-matlab
 class OrnsteinUhlenbeckActionNoise:
-    def __init__(self, mu, sigma=0.3, theta=.15, dt=1e-2, x0=None):
+    # def __init__(self, mu, sigma=0.3, theta=.15, dt=1e-2, x0=None):
+    def __init__(self, mu, sigma=5, theta=.15, dt=1e-2, x0=None):  # CHANGED
         self.theta = theta
         self.mu = mu
         self.sigma = sigma
@@ -253,9 +258,16 @@ def build_summaries():
     bolus_count = tf.Variable(0.)
     tf.summary.scalar("Number of Bolus Injections", bolus_count)
 
-    summary_vars = [episode_reward, episode_ave_max_q, basal_count, bolus_count]
-    summary_ops = tf.summary.merge_all()
 
+    image = tf.Variable(np.zeros((1, 480, 640, 4)), expected_shape=(None, 480, 640, 4), dtype=tf.uint8)
+    tf.summary.image("CGM plot", image)
+
+
+    # ins_hist = tf.Variable([0] * 159, dtype=tf.float32)  # ASSUMPTION sample time is 3
+    # tf.summary.histogram("Insulin episode", ins_hist)
+
+    summary_vars = [episode_reward, episode_ave_max_q, basal_count, bolus_count, image]
+    summary_ops = tf.summary.merge_all()
     return summary_ops, summary_vars
 
 
@@ -282,12 +294,19 @@ def train(sess, env, args, actor, critic, actor_noise):
     # in other environments.
     # tflearn.is_training(True)
 
-    for i in range(int(args['max_episodes'])):
+    #  OUR ASSUMPTIONS
+    ins_bound_param = 15
 
+    for i in tqdm(range(int(args['max_episodes']))):
+        T1DSimEnv = env.env.env
         s = env.reset()
+        meal_times = [int(meal[0] * 60.0 / 3) for meal in T1DSimEnv.scenario.scenario]
+        meal_sizes = [meal[1] for meal in T1DSimEnv.scenario.scenario]
         # s = env.reset().observation  # CHANGED
 
         ep_reward = 0
+        ep_cgm = []
+        ep_ins = []
         ep_ave_max_q = 0
         a_basal_hist = []
         a_bolus_hist = []
@@ -298,16 +317,21 @@ def train(sess, env, args, actor, critic, actor_noise):
 
             # Added exploration noise
             # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
-            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
-            # a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()  # CHANGED
+            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()  # makes sure noise doesnt cross bound
 
             s2, r, terminal, info = env.step(a[0])
+            window_size = int(60 / T1DSimEnv.sample_time)  # Horizon
+            BG_last_hour = T1DSimEnv.CGM_hist[-window_size:]  # Blood Glucose Last Hour
+            IN_last_hour = T1DSimEnv.insulin_hist[-window_size:]  # Insulin Last Hour
 
-            # replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a[0], (actor.a_dim,)), r,  # CHANGED
-            #                   terminal, np.reshape(s2, (actor.s_dim,)))
+            if j < window_size:  # Padding
+                pad_size_BG = window_size - len(BG_last_hour)
+                pad_size_IN = window_size - len(IN_last_hour)
+                BG_last_hour = [80] * pad_size_BG + BG_last_hour  # Blood Glucose Last Hour
+                IN_last_hour = [0] * pad_size_IN + IN_last_hour  # Insulin Last Hour
 
             replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
-                                          terminal, np.reshape(s2, (actor.s_dim,)))
+                              terminal, np.reshape(s2, (actor.s_dim,)))
 
             # Keep adding experience to the memory until
             # there are at least minibatch size samples
@@ -338,28 +362,53 @@ def train(sess, env, args, actor, critic, actor_noise):
                 actor.train(s_batch, grads[0])
 
                 # Update target networks
+
                 actor.update_target_network()
                 critic.update_target_network()
-
+            basal_ins = max(min(a[0][0], ins_bound_param), -1 * ins_bound_param)
+            bolus_ins = max(min(a[0][1], ins_bound_param), -1 * ins_bound_param)
+            insulin = basal_ins + bolus_ins + ins_bound_param * 2
             s = s2
             ep_reward += r
-            a_basal_hist += [a[0][0]]  #TODO make sure basal
-            a_bolus_hist += [a[0][1]]  #TODO make sure bolus
+            ep_cgm += [s.CGM]
+            ep_ins += [insulin]
+            if insulin < 0:
+                print(insulin)
+                print(f"negative at iteration: {j}")
+            a_basal_hist += [basal_ins]  # TODO make sure basal
+            a_bolus_hist += [bolus_ins]  # TODO make sure bolus
 
             if terminal:
+
+                plt.figure()
+                ax = plt.gca()
+                plt.plot(ep_cgm, label="CGM plot")
+                plt.plot(ep_ins, label="Insulin plot")
+                plt.plot(np.array(range(len(ep_cgm)))[meal_times], np.array(ep_cgm)[meal_times], 'g*', label="Meal")
+                # TODO: add annotations with meal sizes
+                plt.title("Episode CGM and Insulin vs Time")
+                handles, labels = ax.get_legend_handles_labels()
+                ax.legend(handles, labels)
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png')
+                buf.seek(0)
+                image = Image.open(buf)
+                image = np.array(image, dtype='uint8')
+                image = np.expand_dims(image, 0)
+
                 summary_str = sess.run(summary_ops, feed_dict={
                     summary_vars[0]: ep_reward,
                     summary_vars[1]: ep_ave_max_q / float(j),
                     summary_vars[2]: len(np.where(a_basal_hist)[0]),
                     summary_vars[3]: len(np.where(a_bolus_hist)[0]),
+                    summary_vars[4]: image,
 
                 })
 
                 writer.add_summary(summary_str, i)
                 writer.flush()
 
-                print('| Reward: {:d} | Episode: {:d} | Qmax: {:.4f}'.format(int(ep_reward), \
-                                                                             i, (ep_ave_max_q / float(j))))
+                print('| Reward: {:.4f} | Episode: {:d} | Qmax: {:.4f}'.format(float(ep_reward), i, (ep_ave_max_q / float(j))))
                 break
 
 

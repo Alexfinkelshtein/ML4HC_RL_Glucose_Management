@@ -23,7 +23,9 @@ import json
 now = datetime.now()
 start_hour = timedelta(hours=float(0))
 start_time = datetime.combine(now.date(), datetime.min.time()) + start_hour
-scenario = CustomScenario(start_time=start_time, scenario=[(1, 300)])
+# TODO: add meal randomization
+meals = [(1, 300)]  # format: list of tuples, where (meal_time, meal_size [grams])
+scenario = CustomScenario(start_time=start_time, scenario=meals)
 # save_path = ''
 # animate = True
 # envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name)
@@ -72,7 +74,7 @@ def summary_path(summaries_base):
             except:
                 return -1
         rel_dirs = sorted(rel_dirs, key=my_value, reverse=True)
-        new_dir = os.path.join(summaries_base, str(float(rel_dirs[0]) + 1))
+        new_dir = os.path.join(summaries_base, str(int(rel_dirs[0]) + 1))
     os.makedirs(new_dir)
     return new_dir
 
@@ -86,11 +88,11 @@ sensor_sample_time = 3
 args = {
     'env': 'simglucose-adolescent2-v0',
     'random_seed': 3,
-    'actor_lr': 0.001,
+    'actor_lr': 0.01,
     'tau': 0.8,
     'minibatch_size': 50,
-    'critic_lr': 0.001,
-    'gamma': 0.98,  # Discount factor acts as effective horizon: 1/(1-gamma) gamma = 0.98 -> horizon ~= 50 min
+    'critic_lr': 0.05,
+    'gamma': 0.975,  # Discount factor acts as effective horizon: 1/(1-gamma) gamma = 0.98 -> horizon ~= 50 min
     'use_gym_monitor': True,
     'render_env': False,  # plot episodes
     'monitor_dir': r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Monitor',

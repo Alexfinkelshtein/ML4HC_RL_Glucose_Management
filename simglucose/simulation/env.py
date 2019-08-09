@@ -33,7 +33,7 @@ def risk_diff(BG_last_hour):
         _, _, risk_current = risk_index([BG_last_hour[-1]], 1)  # Horizon
         _, _, risk_prev = risk_index([BG_last_hour[-2]], 1)  # Horizon
         normalized = lambda x: x/120
-        normalized = lambda x: x
+        # normalized = lambda x: x
         return normalized(risk_prev - risk_current)
 
 
@@ -57,12 +57,12 @@ class T1DSimEnv(object):
 
     def mini_step(self, action):
         # current action
-        patient_action = self.scenario.get_action(self.time)
-        basal = self.pump.basal(action.basal)
-        # basal = self.pump.basal(action[0])  # CHANGED
-        bolus = self.pump.bolus(action.bolus)
-        # bolus = self.pump.bolus(action[1])  # CHANGED
         action_offset = 15  # ASSUMPTION: max pump 30
+        patient_action = self.scenario.get_action(self.time)
+        basal = self.pump.basal(max(min(action.basal, action_offset), -action_offset))  # making sure not out fo bounds
+        # basal = self.pump.basal(action[0])  # CHANGED
+        bolus = self.pump.bolus(max(min(action.bolus, action_offset), -action_offset))  # making sure not out fo bounds
+        # bolus = self.pump.bolus(action[1])  # CHANGED
         insulin = basal + bolus + action_offset * 2  # CHANGED
         CHO = patient_action.meal
         patient_mdl_act = Action(insulin=insulin, CHO=CHO)
