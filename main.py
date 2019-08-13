@@ -24,7 +24,7 @@ now = datetime.now()
 start_hour = timedelta(hours=float(0))
 start_time = datetime.combine(now.date(), datetime.min.time()) + start_hour
 # TODO: add meal randomization
-meals = [(1, 100), (3, 5)]  # format: list of tuples, where (meal_time, meal_size [grams])
+meals = [(1, 10), (3, 5), (5, 10)]  # format: list of tuples, where (meal_time, meal_size [grams])
 scenario = CustomScenario(start_time=start_time, scenario=meals)
 # save_path = ''
 # animate = True
@@ -55,7 +55,7 @@ scenario = CustomScenario(start_time=start_time, scenario=meals)
 register(
     id='simglucose-adolescent2-v0',
     entry_point='simglucose.envs:T1DSimEnv',
-    kwargs={'patient_name': 'adolescent#002', 'custom_scenario': scenario}#, 'reward_fun': reward}
+    kwargs={'patient_name': 'adolescent#002', 'custom_scenario': scenario}#, 'animate': False}#, 'reward_fun': reward}
 )
 
 env = gym.make('simglucose-adolescent2-v0')
@@ -94,7 +94,7 @@ args = {
     'critic_lr': 0.05,
     'gamma': 0.975,  # Discount factor acts as effective horizon: 1/(1-gamma) gamma = 0.98 -> horizon ~= 50 min
     'use_gym_monitor': True,
-    'render_env': False,  # plot episodes
+    'render_env': True,  # plot episodes
     'monitor_dir': r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Monitor',
     'buffer_size': 100,
     'summary_dir': current_summary,

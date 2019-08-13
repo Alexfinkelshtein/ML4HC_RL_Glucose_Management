@@ -17,7 +17,7 @@ class SimObj(object):
                  env,
                  controller,
                  sim_time,
-                 animate=True,
+                 animate=False,
                  path=None):
         self.env = env
         self.controller = controller

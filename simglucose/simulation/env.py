@@ -119,7 +119,8 @@ class T1DSimEnv(object):
         BG_last_hour = self.CGM_hist[-window_size:]
         reward = reward_fun(BG_last_hour)
         done = BG < 2 or BG > 350
-        # done = self.patient.t == (24*60)/self.sample_time - 1*self.sample_time
+        # done = False
+        done = self.patient.t == (24*60)/self.sample_time - 1*self.sample_time
 
         obs = Observation(CGM=CGM)
 

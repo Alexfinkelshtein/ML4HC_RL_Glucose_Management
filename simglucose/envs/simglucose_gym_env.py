@@ -87,7 +87,8 @@ class T1DSimEnv(gym.Env):
         return [seed1, seed2, seed3]
 
     def _render(self, mode='human', close=False):
-        self.env.render(close=close)
+        pass
+        # self.env.render(close=close)
 
     @property
     def action_space(self):

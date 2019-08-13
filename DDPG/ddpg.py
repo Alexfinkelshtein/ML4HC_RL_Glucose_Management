@@ -253,11 +253,11 @@ def build_summaries():
     episode_ave_max_q = tf.Variable(0.)
     tf.summary.scalar("Qmax_Value", episode_ave_max_q)
 
-    basal_count = tf.Variable(0.)
-    tf.summary.scalar("Number of Basal Injections", basal_count)
-
-    bolus_count = tf.Variable(0.)
-    tf.summary.scalar("Number of Bolus Injections", bolus_count)
+    # basal_count = tf.Variable(0.)
+    # tf.summary.scalar("Number of Basal Injections", basal_count)
+    #
+    # bolus_count = tf.Variable(0.)
+    # tf.summary.scalar("Number of Bolus Injections", bolus_count)
 
 
     image = tf.Variable(np.zeros((1, 480, 640, 4)), expected_shape=(None, 480, 640, 4), dtype=tf.uint8)
@@ -267,7 +267,8 @@ def build_summaries():
     # ins_hist = tf.Variable([0] * 159, dtype=tf.float32)  # ASSUMPTION sample time is 3
     # tf.summary.histogram("Insulin episode", ins_hist)
 
-    summary_vars = [episode_reward, episode_ave_max_q, basal_count, bolus_count, image]
+    # summary_vars = [episode_reward, episode_ave_max_q, basal_count, bolus_count, image]
+    summary_vars = [episode_reward, episode_ave_max_q, image]
     summary_ops = tf.summary.merge_all()
     return summary_ops, summary_vars
 
@@ -320,11 +321,12 @@ def train(sess, env, args, actor, critic, actor_noise):
             # Added exploration noise
             # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
             a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()  # makes sure noise doesnt cross bound
-            # if j == 20:
-            a = [np.array([150])]
+            # if i % 2 == 0:
+            #     a = [np.array([30])]
             # else:
-            #     a = [np.array([-15, -15])]
-            # a = [env.action_space.sample()]
+            #     a = [np.array([0])]
+#     a = [np.array([-15, -15])]
+#             a = [env.action_space.sample()]
             s2, r, terminal, info = env.step(a[0])
             s2 = 2*(s2[0] - 39)/(600-39) - 1  # normalize
             window_size = int(60 / T1DSimEnv.sample_time)  # Horizon
@@ -372,20 +374,20 @@ def train(sess, env, args, actor, critic, actor_noise):
 
                 actor.update_target_network()
                 critic.update_target_network()
-            basal_ins = max(min(a[0][0], ins_bound_param), -1 * ins_bound_param)
-            basal_ins = a[0][0]
+            # basal_ins = max(min(a[0][0], ins_bound_param), -1 * ins_bound_param)
+            # basal_ins = a[0][0]
             # bolus_ins = max(min(a[0][1], ins_bound_param), -1 * ins_bound_param)
             # insulin = basal_ins + bolus_ins + ins_bound_param * 2
-            insulin = basal_ins + ins_bound_param
+            # insulin = basal_ins + ins_bound_param
             s = s2
             ep_reward += r
             ep_rewards += [r]
             ep_cgm += [s]
-            ep_ins += [insulin]
-            if insulin < 0:
-                print(insulin)
-                print(f"negative at iteration: {j}")
-            a_basal_hist += [basal_ins]  # TODO make sure basal
+            # ep_ins += [insulin]
+            # if insulin < 0:
+            #     print(insulin)
+            #     print(f"negative at iteration: {j}")
+            # a_basal_hist += [basal_ins]  # TODO make sure basal
             # a_bolus_hist += [bolus_ins]  # TODO make sure bolus
 
             if terminal:
@@ -395,7 +397,7 @@ def train(sess, env, args, actor, critic, actor_noise):
                 plt.plot(ep_cgm, label="CGM plot")
                 plt.plot(T1DSimEnv.BG_hist, label="BG plot")
                 plt.plot(T1DSimEnv.CHO_hist, label="CHO plot")
-                plt.plot(ep_ins, label="Insulin plot")
+                plt.plot(T1DSimEnv.insulin_hist, label="Insulin plot")
                 plt.plot(ep_rewards, label="Reward plot")
                 plt.plot(np.array(range(len(ep_cgm)))[meal_times], np.array(ep_cgm)[meal_times], 'g*', label="Meal")
                 # TODO: add annotations with meal sizes
@@ -405,6 +407,7 @@ def train(sess, env, args, actor, critic, actor_noise):
                 buf = io.BytesIO()
                 plt.savefig(buf, format='png')
                 buf.seek(0)
+
                 image = Image.open(buf)
                 image = np.array(image, dtype='uint8')
                 image = np.expand_dims(image, 0)
@@ -412,9 +415,9 @@ def train(sess, env, args, actor, critic, actor_noise):
                 summary_str = sess.run(summary_ops, feed_dict={
                     summary_vars[0]: ep_reward,
                     summary_vars[1]: ep_ave_max_q / float(j),
-                    summary_vars[2]: len(np.where(a_basal_hist)[0]),
-                    summary_vars[3]: len(np.where(a_bolus_hist)[0]),
-                    summary_vars[4]: image,
+                    # summary_vars[2]: len(np.where(a_basal_hist)[0]),
+                    # summary_vars[3]: len(np.where(a_bolus_hist)[0]),
+                    summary_vars[2]: image,
 
                 })
 
