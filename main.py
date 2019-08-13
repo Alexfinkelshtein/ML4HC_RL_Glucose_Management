@@ -24,7 +24,7 @@ now = datetime.now()
 start_hour = timedelta(hours=float(0))
 start_time = datetime.combine(now.date(), datetime.min.time()) + start_hour
 # TODO: add meal randomization
-meals = [(1, 300)]  # format: list of tuples, where (meal_time, meal_size [grams])
+meals = [(1, 100), (3, 5)]  # format: list of tuples, where (meal_time, meal_size [grams])
 scenario = CustomScenario(start_time=start_time, scenario=meals)
 # save_path = ''
 # animate = True

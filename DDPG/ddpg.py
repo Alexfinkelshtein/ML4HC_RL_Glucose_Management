@@ -183,16 +183,17 @@ class CriticNetwork(object):
 
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]
-        w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
+        w_init = tflearn.initializations.uniform(minval=-0.03, maxval=0.03)
         out = tflearn.fully_connected(net, 1, weights_init=w_init)
         return inputs, action, out
 
     def train(self, inputs, action, predicted_q_value):
-        return self.sess.run([self.out, self.optimize], feed_dict={
+        ans = self.sess.run([self.out, self.optimize], feed_dict={
             self.inputs: inputs,
             self.action: action,
             self.predicted_q_value: predicted_q_value
         })
+        return ans
 
     def predict(self, inputs, action):
         return self.sess.run(self.out, feed_dict={
@@ -305,6 +306,7 @@ def train(sess, env, args, actor, critic, actor_noise):
         # s = env.reset().observation  # CHANGED
 
         ep_reward = 0
+        ep_rewards = []
         ep_cgm = []
         ep_ins = []
         ep_ave_max_q = 0
@@ -313,13 +315,18 @@ def train(sess, env, args, actor, critic, actor_noise):
         for j in range(int(args['max_episode_len'])):
 
             if args['render_env']:
-                env.render()
+                env.render(mode='human')
 
             # Added exploration noise
             # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
             a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()  # makes sure noise doesnt cross bound
-
+            # if j == 20:
+            a = [np.array([150])]
+            # else:
+            #     a = [np.array([-15, -15])]
+            # a = [env.action_space.sample()]
             s2, r, terminal, info = env.step(a[0])
+            s2 = 2*(s2[0] - 39)/(600-39) - 1  # normalize
             window_size = int(60 / T1DSimEnv.sample_time)  # Horizon
             BG_last_hour = T1DSimEnv.CGM_hist[-window_size:]  # Blood Glucose Last Hour
             IN_last_hour = T1DSimEnv.insulin_hist[-window_size:]  # Insulin Last Hour
@@ -366,24 +373,30 @@ def train(sess, env, args, actor, critic, actor_noise):
                 actor.update_target_network()
                 critic.update_target_network()
             basal_ins = max(min(a[0][0], ins_bound_param), -1 * ins_bound_param)
-            bolus_ins = max(min(a[0][1], ins_bound_param), -1 * ins_bound_param)
-            insulin = basal_ins + bolus_ins + ins_bound_param * 2
+            basal_ins = a[0][0]
+            # bolus_ins = max(min(a[0][1], ins_bound_param), -1 * ins_bound_param)
+            # insulin = basal_ins + bolus_ins + ins_bound_param * 2
+            insulin = basal_ins + ins_bound_param
             s = s2
             ep_reward += r
-            ep_cgm += [s.CGM]
+            ep_rewards += [r]
+            ep_cgm += [s]
             ep_ins += [insulin]
             if insulin < 0:
                 print(insulin)
                 print(f"negative at iteration: {j}")
             a_basal_hist += [basal_ins]  # TODO make sure basal
-            a_bolus_hist += [bolus_ins]  # TODO make sure bolus
+            # a_bolus_hist += [bolus_ins]  # TODO make sure bolus
 
             if terminal:
 
                 plt.figure()
                 ax = plt.gca()
                 plt.plot(ep_cgm, label="CGM plot")
+                plt.plot(T1DSimEnv.BG_hist, label="BG plot")
+                plt.plot(T1DSimEnv.CHO_hist, label="CHO plot")
                 plt.plot(ep_ins, label="Insulin plot")
+                plt.plot(ep_rewards, label="Reward plot")
                 plt.plot(np.array(range(len(ep_cgm)))[meal_times], np.array(ep_cgm)[meal_times], 'g*', label="Meal")
                 # TODO: add annotations with meal sizes
                 plt.title("Episode CGM and Insulin vs Time")
@@ -407,7 +420,7 @@ def train(sess, env, args, actor, critic, actor_noise):
 
                 writer.add_summary(summary_str, i)
                 writer.flush()
-
+                plt.close()
                 print('| Reward: {:.4f} | Episode: {:d} | Qmax: {:.4f}'.format(float(ep_reward), i, (ep_ave_max_q / float(j))))
                 break
 

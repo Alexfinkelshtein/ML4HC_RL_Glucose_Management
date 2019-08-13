@@ -48,8 +48,8 @@ class T1DSimEnv(object):
         # self.action_space = spaces.Box(0, 400, (2, 1))
         self._reset()
 
-    def seed(self, rand_seed):
-        self.sensor.seed = rand_seed
+    # def seed(self, rand_seed):
+    #     self.sensor.seed = rand_seed
 
     @property
     def time(self):
@@ -59,11 +59,13 @@ class T1DSimEnv(object):
         # current action
         action_offset = 15  # ASSUMPTION: max pump 30
         patient_action = self.scenario.get_action(self.time)
-        basal = self.pump.basal(max(min(action.basal, action_offset), -action_offset))  # making sure not out fo bounds
+        basal = self.pump.basal(action.basal[0])  # making sure not out fo bounds
+        # basal = self.pump.basal(max(min(action.basal, action_offset), -action_offset))  # making sure not out fo bounds
         # basal = self.pump.basal(action[0])  # CHANGED
-        bolus = self.pump.bolus(max(min(action.bolus, action_offset), -action_offset))  # making sure not out fo bounds
+        # bolus = self.pump.bolus(max(min(action.bolus, action_offset), -action_offset))  # making sure not out fo bounds
         # bolus = self.pump.bolus(action[1])  # CHANGED
-        insulin = basal + bolus + action_offset * 2  # CHANGED
+        # insulin = basal + bolus + action_offset * 2  # CHANGED
+        insulin = basal
         CHO = patient_action.meal
         patient_mdl_act = Action(insulin=insulin, CHO=CHO)
 
@@ -116,8 +118,8 @@ class T1DSimEnv(object):
         window_size = int(60 / self.sample_time)  # Horizon
         BG_last_hour = self.CGM_hist[-window_size:]
         reward = reward_fun(BG_last_hour)
-        done = BG < 70 or BG > 350
-        done = self.patient.t == (24*60)/self.sample_time - 1*self.sample_time
+        done = BG < 2 or BG > 350
+        # done = self.patient.t == (24*60)/self.sample_time - 1*self.sample_time
 
         obs = Observation(CGM=CGM)
 
@@ -125,7 +127,7 @@ class T1DSimEnv(object):
             observation=obs,
             reward=reward,
             done=done,
-            sample_time=self.sample_time,
+            sample_time=float(self.sample_time),
             patient_name=self.patient.name,
             meal=CHO,
             patient_state=self.patient.state)
