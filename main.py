@@ -96,7 +96,7 @@ args = {
     'use_gym_monitor': True,
     'render_env': True,  # plot episodes
     'monitor_dir': r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Monitor',
-    'buffer_size': 100,
+    'buffer_size': 30,
     'summary_dir': current_summary,
     'max_episodes': 500,
     'max_episode_len': 60*24/sensor_sample_time

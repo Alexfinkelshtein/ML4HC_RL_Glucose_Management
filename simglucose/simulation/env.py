@@ -22,7 +22,7 @@ except ImportError:
         """
         return _Step(observation, reward, done, kwargs)
 
-Observation = namedtuple('Observation', ['CGM'])
+Observation = namedtuple('Observation', ['CGM', 'INSULIN'])
 logger = logging.getLogger(__name__)
 
 
@@ -34,7 +34,8 @@ def risk_diff(BG_last_hour):
         _, _, risk_prev = risk_index([BG_last_hour[-2]], 1)  # Horizon
         normalized = lambda x: x/120
         # normalized = lambda x: x
-        return normalized(risk_prev - risk_current)
+        # return normalized(risk_prev - risk_current)
+        return normalized(risk_current)
 
 
 class T1DSimEnv(object):
@@ -121,8 +122,15 @@ class T1DSimEnv(object):
         done = BG < 2 or BG > 350
         # done = False
         done = self.patient.t == (24*60)/self.sample_time - 1*self.sample_time
+        cgm_s = self.CGM_hist[-window_size:]
+        ins_s = self.insulin_hist[-window_size:]
+        if min(len(self.CGM_hist), len(self.insulin_hist)) < window_size:  # Padding
+            pad_size_cgm = max(window_size - len(self.CGM_hist), 0)
+            pad_size_IN = max(window_size - len(self.insulin_hist), 0)
+            cgm_s = [self.CGM_hist[0]] * pad_size_cgm + self.CGM_hist  # Blood Glucose Last Hour
+            ins_s = [self.insulin_hist[0]] * pad_size_IN + self.insulin_hist  # Insulin Last Hour
 
-        obs = Observation(CGM=CGM)
+        obs = Observation(CGM=cgm_s, INSULIN=ins_s)
 
         return Step(
             observation=obs,
@@ -157,7 +165,7 @@ class T1DSimEnv(object):
         self.scenario.reset()
         self._reset()
         CGM = self.sensor.measure(self.patient)
-        obs = Observation(CGM=CGM)
+        obs = Observation(CGM=[CGM] * 20, INSULIN=[0] * 20)
         return Step(
             observation=obs,
             reward=0,

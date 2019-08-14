@@ -328,16 +328,15 @@ def train(sess, env, args, actor, critic, actor_noise):
 #     a = [np.array([-15, -15])]
 #             a = [env.action_space.sample()]
             s2, r, terminal, info = env.step(a[0])
-            s2 = 2*(s2[0] - 39)/(600-39) - 1  # normalize
-            window_size = int(60 / T1DSimEnv.sample_time)  # Horizon
-            BG_last_hour = T1DSimEnv.CGM_hist[-window_size:]  # Blood Glucose Last Hour
-            IN_last_hour = T1DSimEnv.insulin_hist[-window_size:]  # Insulin Last Hour
-
-            if j < window_size:  # Padding
-                pad_size_BG = window_size - len(BG_last_hour)
-                pad_size_IN = window_size - len(IN_last_hour)
-                BG_last_hour = [80] * pad_size_BG + BG_last_hour  # Blood Glucose Last Hour
-                IN_last_hour = [0] * pad_size_IN + IN_last_hour  # Insulin Last Hour
+            # s2 = 2*(s2[0] - 39)/(600-39) - 1  # normalize
+            # window_size = int(60 / T1DSimEnv.sample_time)  # Horizon
+            # BG_last_hour = T1DSimEnv.CGM_hist[-window_size:]  # Blood Glucose Last Hour
+            # IN_last_hour = T1DSimEnv.insulin_hist[-window_size:]  # Insulin Last Hour
+            # if j < window_size:  # Padding
+            #     pad_size_BG = window_size - len(BG_last_hour)
+            #     pad_size_IN = window_size - len(IN_last_hour)
+            #     BG_last_hour = [BG_last_hour[0]] * pad_size_BG + BG_last_hour  # Blood Glucose Last Hour
+            #     IN_last_hour = [IN_last_hour[0]] * pad_size_IN + IN_last_hour  # Insulin Last Hour
 
             replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
                               terminal, np.reshape(s2, (actor.s_dim,)))
@@ -394,12 +393,12 @@ def train(sess, env, args, actor, critic, actor_noise):
 
                 plt.figure()
                 ax = plt.gca()
-                plt.plot(ep_cgm, label="CGM plot")
+                plt.plot(T1DSimEnv.CHO_hist, label="CGM plot")
                 plt.plot(T1DSimEnv.BG_hist, label="BG plot")
                 plt.plot(T1DSimEnv.CHO_hist, label="CHO plot")
                 plt.plot(T1DSimEnv.insulin_hist, label="Insulin plot")
                 plt.plot(ep_rewards, label="Reward plot")
-                plt.plot(np.array(range(len(ep_cgm)))[meal_times], np.array(ep_cgm)[meal_times], 'g*', label="Meal")
+                plt.plot(np.array(range(len(T1DSimEnv.CHO_hist)))[meal_times], np.array(T1DSimEnv.CHO_hist)[meal_times], 'g*', label="Meal")
                 # TODO: add annotations with meal sizes
                 plt.title("Episode CGM and Insulin vs Time")
                 handles, labels = ax.get_legend_handles_labels()
