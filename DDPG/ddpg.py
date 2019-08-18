@@ -81,19 +81,21 @@ class ActorNetwork(object):
 
     def create_actor_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        net = tflearn.fully_connected(inputs, 400)
+        net = tflearn.fully_connected(inputs, 1200)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
-        net = tflearn.fully_connected(net, 300)
+        net = tflearn.fully_connected(net, 900)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
-        w_init = tflearn.initializations.uniform(minval=-0.3, maxval=0.3)  # TODO consider xavier initialization
+        w_init = tflearn.initializations.uniform(minval=-1, maxval=1)  # TODO consider xavier initialization
         # w_init = tflearn.initializations.uniform(minval=0, maxval=0.03)
         out = tflearn.fully_connected(
-            net, self.a_dim, activation='tanh', weights_init=w_init)
+            net, self.a_dim, activation='relu', weights_init=w_init)
+
         # Scale output to -action_bound to action_bound
         scaled_out = tf.multiply(out, self.action_bound)
+        print(net.summary())
         return inputs, out, scaled_out
 
     def train(self, inputs, a_gradient):
@@ -169,22 +171,23 @@ class CriticNetwork(object):
     def create_critic_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
-        net = tflearn.fully_connected(inputs, 400)
+        net = tflearn.fully_connected(inputs, 1200)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
-        t1 = tflearn.fully_connected(net, 300)
-        t2 = tflearn.fully_connected(action, 300)
+        t1 = tflearn.fully_connected(net, 900)
+        t2 = tflearn.fully_connected(action, 900)
 
         net = tflearn.activation(
             tf.matmul(net, t1.W) + tf.matmul(action, t2.W) + t2.b, activation='relu')
 
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]
-        w_init = tflearn.initializations.uniform(minval=-0.03, maxval=0.03)
+        w_init = tflearn.initializations.uniform(minval=-1, maxval=1)
         out = tflearn.fully_connected(net, 1, weights_init=w_init)
+        print(net.summary())
         return inputs, action, out
 
     def train(self, inputs, action, predicted_q_value):
@@ -393,7 +396,7 @@ def train(sess, env, args, actor, critic, actor_noise):
 
                 plt.figure()
                 ax = plt.gca()
-                plt.plot(T1DSimEnv.CHO_hist, label="CGM plot")
+                plt.plot(T1DSimEnv.CGM_hist, label="CGM plot")
                 plt.plot(T1DSimEnv.BG_hist, label="BG plot")
                 plt.plot(T1DSimEnv.CHO_hist, label="CHO plot")
                 plt.plot(T1DSimEnv.insulin_hist, label="Insulin plot")

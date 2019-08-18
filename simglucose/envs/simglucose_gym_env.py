@@ -106,4 +106,4 @@ class T1DSimEnv(gym.Env):
     def observation_space(self):
         # TODO adjust for history window
         # return spaces.Box(low=0, high=np.inf, shape=(1,))
-        return spaces.Box(low=0, high=np.inf, shape=(40, ))
+        return spaces.Box(low=0, high=np.inf, shape=(60, ))
