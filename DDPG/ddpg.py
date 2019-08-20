@@ -81,10 +81,10 @@ class ActorNetwork(object):
 
     def create_actor_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        net = tflearn.fully_connected(inputs, 1200)
+        net = tflearn.fully_connected(inputs, 1200, activation='relu')
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
-        net = tflearn.fully_connected(net, 900)
+        net = tflearn.fully_connected(net, 900, activation='relu')
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
@@ -95,7 +95,6 @@ class ActorNetwork(object):
 
         # Scale output to -action_bound to action_bound
         scaled_out = tf.multiply(out, self.action_bound)
-        print(net.summary())
         return inputs, out, scaled_out
 
     def train(self, inputs, a_gradient):
@@ -154,7 +153,7 @@ class CriticNetwork(object):
              for i in range(len(self.target_network_params))]
 
         # Network target (y_i)
-        self.predicted_q_value = tf.placeholder(tf.float32, [None, 1])
+        self.predicted_q_value = tf.placeholder(tf.float32, [None, 1], name='predicted_q')
 
         # Define loss and optimization Op
         self.loss = tflearn.mean_square(self.predicted_q_value, self.out)
@@ -171,7 +170,7 @@ class CriticNetwork(object):
     def create_critic_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
-        net = tflearn.fully_connected(inputs, 1200)
+        net = tflearn.fully_connected(inputs, 1200, activation='relu')
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
 
@@ -185,9 +184,8 @@ class CriticNetwork(object):
 
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]
-        w_init = tflearn.initializations.uniform(minval=-1, maxval=1)
-        out = tflearn.fully_connected(net, 1, weights_init=w_init)
-        print(net.summary())
+        w_init = tflearn.initializations.uniform(minval=-3e-3, maxval=3e-3)
+        out = tflearn.fully_connected(net, 1, weights_init=w_init, name='out')
         return inputs, action, out
 
     def train(self, inputs, action, predicted_q_value):
@@ -223,8 +221,8 @@ class CriticNetwork(object):
 # Taken from https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py, which is
 # based on http://math.stackexchange.com/questions/1287634/implementing-ornstein-uhlenbeck-in-matlab
 class OrnsteinUhlenbeckActionNoise:
-    # def __init__(self, mu, sigma=0.3, theta=.15, dt=1e-2, x0=None):
-    def __init__(self, mu, sigma=5, theta=.15, dt=1e-2, x0=None):  # CHANGED
+    def __init__(self, mu, sigma=0.3, theta=.15, dt=1e-2, x0=None):
+    # def __init__(self, mu, sigma=5, theta=.15, dt=1e-2, x0=None):  # CHANGED
         self.theta = theta
         self.mu = mu
         self.sigma = sigma
@@ -256,22 +254,13 @@ def build_summaries():
     episode_ave_max_q = tf.Variable(0.)
     tf.summary.scalar("Qmax_Value", episode_ave_max_q)
 
-    # basal_count = tf.Variable(0.)
-    # tf.summary.scalar("Number of Basal Injections", basal_count)
-    #
-    # bolus_count = tf.Variable(0.)
-    # tf.summary.scalar("Number of Bolus Injections", bolus_count)
-
+    loss_critic = tf.Variable(0.)
+    tf.summary.scalar("loss_critic", loss_critic)
 
     image = tf.Variable(np.zeros((1, 480, 640, 4)), expected_shape=(None, 480, 640, 4), dtype=tf.uint8)
     tf.summary.image("CGM plot", image)
 
-
-    # ins_hist = tf.Variable([0] * 159, dtype=tf.float32)  # ASSUMPTION sample time is 3
-    # tf.summary.histogram("Insulin episode", ins_hist)
-
-    # summary_vars = [episode_reward, episode_ave_max_q, basal_count, bolus_count, image]
-    summary_vars = [episode_reward, episode_ave_max_q, image]
+    summary_vars = [episode_reward, episode_ave_max_q, loss_critic, image]
     summary_ops = tf.summary.merge_all()
     return summary_ops, summary_vars
 
@@ -314,6 +303,8 @@ def train(sess, env, args, actor, critic, actor_noise):
         ep_cgm = []
         ep_ins = []
         ep_ave_max_q = 0
+        loss_critic = 0
+        loss_critic_ep = []
         a_basal_hist = []
         a_bolus_hist = []
         for j in range(int(args['max_episode_len'])):
@@ -328,10 +319,10 @@ def train(sess, env, args, actor, critic, actor_noise):
             #     a = [np.array([30])]
             # else:
             #     a = [np.array([0])]
-#     a = [np.array([-15, -15])]
-#             a = [env.action_space.sample()]
+            #     a = [np.array([-15, -15])]
+            #             a = [env.action_space.sample()]
             s2, r, terminal, info = env.step(a[0])
-            # s2 = 2*(s2[0] - 39)/(600-39) - 1  # normalize
+
             # window_size = int(60 / T1DSimEnv.sample_time)  # Horizon
             # BG_last_hour = T1DSimEnv.CGM_hist[-window_size:]  # Blood Glucose Last Hour
             # IN_last_hour = T1DSimEnv.insulin_hist[-window_size:]  # Insulin Last Hour
@@ -364,14 +355,13 @@ def train(sess, env, args, actor, critic, actor_noise):
                 # Update the critic given the targets
                 predicted_q_value, _ = critic.train(
                     s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
-
                 ep_ave_max_q += np.amax(predicted_q_value)
+                loss_critic += np.mean(np.square(predicted_q_value - y_i))
 
                 # Update the actor policy using the sampled gradient
                 a_outs = actor.predict(s_batch)
                 grads = critic.action_gradients(s_batch, a_outs)
                 actor.train(s_batch, grads[0])
-
                 # Update target networks
 
                 actor.update_target_network()
@@ -385,6 +375,7 @@ def train(sess, env, args, actor, critic, actor_noise):
             ep_reward += r
             ep_rewards += [r]
             ep_cgm += [s]
+            loss_critic_ep += [loss_critic]
             # ep_ins += [insulin]
             # if insulin < 0:
             #     print(insulin)
@@ -393,7 +384,6 @@ def train(sess, env, args, actor, critic, actor_noise):
             # a_bolus_hist += [bolus_ins]  # TODO make sure bolus
 
             if terminal:
-
                 plt.figure()
                 ax = plt.gca()
                 plt.plot(T1DSimEnv.CGM_hist, label="CGM plot")
@@ -401,7 +391,8 @@ def train(sess, env, args, actor, critic, actor_noise):
                 plt.plot(T1DSimEnv.CHO_hist, label="CHO plot")
                 plt.plot(T1DSimEnv.insulin_hist, label="Insulin plot")
                 plt.plot(ep_rewards, label="Reward plot")
-                plt.plot(np.array(range(len(T1DSimEnv.CHO_hist)))[meal_times], np.array(T1DSimEnv.CHO_hist)[meal_times], 'g*', label="Meal")
+                plt.plot(np.array(range(len(T1DSimEnv.CHO_hist)))[meal_times], np.array(T1DSimEnv.CHO_hist)[meal_times],
+                         'g*', label="Meal")
                 # TODO: add annotations with meal sizes
                 plt.title("Episode CGM and Insulin vs Time")
                 handles, labels = ax.get_legend_handles_labels()
@@ -417,16 +408,16 @@ def train(sess, env, args, actor, critic, actor_noise):
                 summary_str = sess.run(summary_ops, feed_dict={
                     summary_vars[0]: ep_reward,
                     summary_vars[1]: ep_ave_max_q / float(j),
-                    # summary_vars[2]: len(np.where(a_basal_hist)[0]),
-                    # summary_vars[3]: len(np.where(a_bolus_hist)[0]),
-                    summary_vars[2]: image,
+                    summary_vars[2]: float(np.mean(loss_critic_ep)),
+                    summary_vars[3]: image,
 
                 })
 
                 writer.add_summary(summary_str, i)
                 writer.flush()
                 plt.close()
-                print('| Reward: {:.4f} | Episode: {:d} | Qmax: {:.4f}'.format(float(ep_reward), i, (ep_ave_max_q / float(j))))
+                print('| Reward: {:.4f} | Episode: {:d} | Qmax: {:.4f}'.format(float(ep_reward), i,
+                                                                               (ep_ave_max_q / float(j))))
                 break
 
 

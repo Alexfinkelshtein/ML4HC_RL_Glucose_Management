@@ -1,5 +1,5 @@
 from simglucose.patient.t1dpatient import Action
-from simglucose.analysis.risk import risk_index
+from simglucose.analysis.risk import risk_index, risk_index2
 import pandas as pd
 from datetime import timedelta
 import logging
@@ -30,12 +30,17 @@ def risk_diff(BG_last_hour):
     if len(BG_last_hour) < 2:
         return 0
     else:
-        _, _, risk_current = risk_index([BG_last_hour[-1]], 1)  # Horizon
-        _, _, risk_prev = risk_index([BG_last_hour[-2]], 1)  # Horizon
-        normalized = lambda x: x/120
+        _, _, risk_current = risk_index2([BG_last_hour[-1]], 1)  # Horizon
+        _, _, risk_prev = risk_index2([BG_last_hour[-2]], 1)  # Horizon
+        normalized = lambda x: x / 120
         # normalized = lambda x: x
         # return normalized(risk_prev - risk_current)
         return -normalized(risk_current)
+
+
+normalize_cgm = lambda x: 2 * (x - 39) / (600 - 39) - 1
+normalize_ins = lambda x: x / 30
+normalize_cho = lambda x: x / 1000
 
 
 class T1DSimEnv(object):
@@ -88,6 +93,10 @@ class T1DSimEnv(object):
         BG = 0.0
         CGM = 0.0
 
+        CHO_norm = 0.0
+        insulin_norm = 0.0
+        CGM_norm = 0.0
+
         for _ in range(int(self.sample_time)):
             # Compute moving average as the sample measurements
             tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM = self.mini_step(action)
@@ -98,6 +107,9 @@ class T1DSimEnv(object):
             insulin += tmp_insulin / self.sample_time
             BG += tmp_BG / self.sample_time
             CGM += tmp_CGM / self.sample_time
+            # CHO_norm += normalize_cho(tmp_CHO / self.sample_time)
+            # CGM_norm += normalize_cgm(tmp_CGM / self.sample_time)
+            # insulin_norm += normalize_ins(tmp_insulin / self.sample_time)
 
         # Compute risk index
         horizon = 1
@@ -105,12 +117,15 @@ class T1DSimEnv(object):
 
         # Record current action
         self.CHO_hist.append(CHO)
+        # self.CHO_hist.append(CHO_norm)
         self.insulin_hist.append(insulin)
+        # self.insulin_hist.append(insulin_norm)
 
         # Record next observation
         self.time_hist.append(self.time)
         self.BG_hist.append(BG)
         self.CGM_hist.append(CGM)
+        # self.CGM_hist.append(CGM_norm)
         self.risk_hist.append(risk)
         self.LBGI_hist.append(LBGI)
         self.HBGI_hist.append(HBGI)
@@ -119,9 +134,8 @@ class T1DSimEnv(object):
         window_size = int(60 / self.sample_time)  # Horizon
         BG_last_hour = self.CGM_hist[-window_size:]
         reward = reward_fun(BG_last_hour)
-        done = BG < 2 or BG > 350
-        # done = False
-        done = self.patient.t == (24*60)/self.sample_time - 1*self.sample_time
+        # done = BG < 70 or BG > 350
+        done = self.patient.t == (24 * 60) / self.sample_time - 1 * self.sample_time
         cgm_s = self.CGM_hist[-window_size:]
         ins_s = self.insulin_hist[-window_size:]
         cho_s = self.CHO_hist[-window_size:]
@@ -160,6 +174,8 @@ class T1DSimEnv(object):
         self.HBGI_hist = [HBGI]
         self.CHO_hist = []
         self.insulin_hist = []
+        self.CHO_hist = []
+        self.insulin_hist = []
 
     def reset(self):
         self.patient.reset()
@@ -168,7 +184,7 @@ class T1DSimEnv(object):
         self.scenario.reset()
         self._reset()
         CGM = self.sensor.measure(self.patient)
-        obs = Observation(CGM=[CGM] * 20, INSULIN=[0] * 20, CHO=[0] * 20)
+        obs = Observation(CGM=[normalize_cgm(CGM)] * 20, INSULIN=[0] * 20, CHO=[0] * 20)
         return Step(
             observation=obs,
             reward=0,
