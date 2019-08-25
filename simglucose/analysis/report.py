@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def ensemble_BG(BG, ax=None, plot_var=False, nstd=3):
+def ensemble_BG(BG, ax=None, plot_var=True, nstd=3):
     mean_curve = BG.transpose().mean()
     std_curve = BG.transpose().std()
     up_env = mean_curve + nstd * std_curve

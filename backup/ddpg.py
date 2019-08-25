@@ -19,21 +19,9 @@ import pprint as pp
 import matplotlib.pyplot as plt
 import io
 from PIL import Image
-from keras.models import load_model
+
 from DDPG.replay_buffer import ReplayBuffer
 from tqdm import tqdm
-from os import path as P
-import keras.backend as K
-from collections import namedtuple
-
-Action = namedtuple('ctrller_action', ['basal', 'bolus'])
-
-
-# %% custom activation
-def map_to_range(x, target_min=1, target_max=7):
-    x02 = K.tanh(x) + 1  # x in range(0,2)
-    scale = (target_max - target_min) / 2.
-    return x02 * scale + target_min
 
 
 # ===========================
@@ -85,7 +73,7 @@ class ActorNetwork(object):
         self.actor_gradients = list(map(lambda x: tf.div(x, self.batch_size), self.unnormalized_actor_gradients))
 
         # Optimization Op
-        self.optimize = tf.train.AdadeltaOptimizer(self.learning_rate). \
+        self.optimize = tf.train.AdamOptimizer(self.learning_rate). \
             apply_gradients(zip(self.actor_gradients, self.network_params))
 
         self.num_trainable_vars = len(
@@ -93,19 +81,19 @@ class ActorNetwork(object):
 
     def create_actor_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        net = tflearn.fully_connected(inputs, 1200, weight_decay=0.01)
+        net = tflearn.fully_connected(inputs, 1200, activation='relu')
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
-
-        net = tflearn.fully_connected(net, 900, weight_decay=0.01)
+        net = tflearn.fully_connected(net, 900, activation='relu')
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
-
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
-        w_init = tflearn.initializations.uniform(minval=-1, maxval=1)
+        w_init = tflearn.initializations.uniform(minval=-1, maxval=1)  # TODO consider xavier initialization
+        # w_init = tflearn.initializations.uniform(minval=0, maxval=0.03)
         out = tflearn.fully_connected(
             net, self.a_dim, activation='relu', weights_init=w_init)
-        # Scale output to -action_bound to action_bound  # TODO: instead of multiply rescale map_to_range
+
+        # Scale output to -action_bound to action_bound
         scaled_out = tf.multiply(out, self.action_bound)
         return inputs, out, scaled_out
 
@@ -165,7 +153,7 @@ class CriticNetwork(object):
              for i in range(len(self.target_network_params))]
 
         # Network target (y_i)
-        self.predicted_q_value = tf.placeholder(tf.float32, [None, 1])
+        self.predicted_q_value = tf.placeholder(tf.float32, [None, 1], name='predicted_q')
 
         # Define loss and optimization Op
         self.loss = tflearn.mean_square(self.predicted_q_value, self.out)
@@ -182,13 +170,13 @@ class CriticNetwork(object):
     def create_critic_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
-        # net = tflearn.fully_connected(inputs, 1200)
         net = tflearn.fully_connected(inputs, 1200, activation='relu')
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
+
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
-        t1 = tflearn.fully_connected(net, 900, activation='relu')
+        t1 = tflearn.fully_connected(net, 900)
         t2 = tflearn.fully_connected(action, 900)
 
         net = tflearn.activation(
@@ -196,9 +184,8 @@ class CriticNetwork(object):
 
         # linear layer connected to 1 output representing Q(s,a)
         # Weights are init to Uniform[-3e-3, 3e-3]
-        w_init = tflearn.initializations.uniform(minval=-1, maxval=1)
-        out = tflearn.fully_connected(net, 1, weights_init=w_init)
-        # print(net.summary())
+        w_init = tflearn.initializations.uniform(minval=-3e-3, maxval=3e-3)
+        out = tflearn.fully_connected(net, 1, weights_init=w_init, name='out')
         return inputs, action, out
 
     def train(self, inputs, action, predicted_q_value):
@@ -235,7 +222,7 @@ class CriticNetwork(object):
 # based on http://math.stackexchange.com/questions/1287634/implementing-ornstein-uhlenbeck-in-matlab
 class OrnsteinUhlenbeckActionNoise:
     def __init__(self, mu, sigma=0.3, theta=.15, dt=1e-2, x0=None):
-        # def __init__(self, mu, sigma=5, theta=.15, dt=1e-2, x0=None):  # CHANGED
+    # def __init__(self, mu, sigma=5, theta=.15, dt=1e-2, x0=None):  # CHANGED
         self.theta = theta
         self.mu = mu
         self.sigma = sigma
@@ -309,6 +296,7 @@ def train(sess, env, args, actor, critic, actor_noise):
         s = env.reset()
         meal_times = [int(meal[0] * 60.0 / 3) for meal in T1DSimEnv.scenario.scenario]
         meal_sizes = [meal[1] for meal in T1DSimEnv.scenario.scenario]
+        # s = env.reset().observation  # CHANGED
 
         ep_reward = 0
         ep_rewards = []
@@ -325,8 +313,25 @@ def train(sess, env, args, actor, critic, actor_noise):
                 env.render(mode='human')
 
             # Added exploration noise
-            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
+            # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
+            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()  # makes sure noise doesnt cross bound
+            # if i % 2 == 0:
+            #     a = [np.array([30])]
+            # else:
+            #     a = [np.array([0])]
+            #     a = [np.array([-15, -15])]
+            #             a = [env.action_space.sample()]
             s2, r, terminal, info = env.step(a[0])
+
+            # window_size = int(60 / T1DSimEnv.sample_time)  # Horizon
+            # BG_last_hour = T1DSimEnv.CGM_hist[-window_size:]  # Blood Glucose Last Hour
+            # IN_last_hour = T1DSimEnv.insulin_hist[-window_size:]  # Insulin Last Hour
+            # if j < window_size:  # Padding
+            #     pad_size_BG = window_size - len(BG_last_hour)
+            #     pad_size_IN = window_size - len(IN_last_hour)
+            #     BG_last_hour = [BG_last_hour[0]] * pad_size_BG + BG_last_hour  # Blood Glucose Last Hour
+            #     IN_last_hour = [IN_last_hour[0]] * pad_size_IN + IN_last_hour  # Insulin Last Hour
+
             replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
                               terminal, np.reshape(s2, (actor.s_dim,)))
 
@@ -350,7 +355,6 @@ def train(sess, env, args, actor, critic, actor_noise):
                 # Update the critic given the targets
                 predicted_q_value, _ = critic.train(
                     s_batch, a_batch, np.reshape(y_i, (int(args['minibatch_size']), 1)))
-
                 ep_ave_max_q += np.amax(predicted_q_value)
                 loss_critic += np.mean(np.square(predicted_q_value - y_i))
 
@@ -358,16 +362,27 @@ def train(sess, env, args, actor, critic, actor_noise):
                 a_outs = actor.predict(s_batch)
                 grads = critic.action_gradients(s_batch, a_outs)
                 actor.train(s_batch, grads[0])
-
                 # Update target networks
+
                 actor.update_target_network()
                 critic.update_target_network()
-
+            # basal_ins = max(min(a[0][0], ins_bound_param), -1 * ins_bound_param)
+            # basal_ins = a[0][0]
+            # bolus_ins = max(min(a[0][1], ins_bound_param), -1 * ins_bound_param)
+            # insulin = basal_ins + bolus_ins + ins_bound_param * 2
+            # insulin = basal_ins + ins_bound_param
             s = s2
             ep_reward += r
             ep_rewards += [r]
             ep_cgm += [s]
             loss_critic_ep += [loss_critic]
+            # ep_ins += [insulin]
+            # if insulin < 0:
+            #     print(insulin)
+            #     print(f"negative at iteration: {j}")
+            # a_basal_hist += [basal_ins]  # TODO make sure basal
+            # a_bolus_hist += [bolus_ins]  # TODO make sure bolus
+
             if terminal:
                 plt.figure()
                 ax = plt.gca()
@@ -406,32 +421,35 @@ def train(sess, env, args, actor, critic, actor_noise):
                 break
 
 
-def train_ddpg(args):
+def main(args):
     with tf.Session() as sess:
-        # %% ENVIRONMENT SETUP
+
         env = gym.make(args['env'])
+        # env = args['env']
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
-        # %% SPACE
+
         state_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
         action_bound = env.action_space.high
-        # %% MODELS
-        if args['Load_models_path'] is None:
-            actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
-                                 float(args['actor_lr']), float(args['tau']),
-                                 int(args['minibatch_size']))
+        # Ensure action bound is symmetric
+        # TODO: decide about action space with respect to symmetry
+        # TODO consider:
+        # def rescale_actions(tanh_output, low, high):
+        #     range = high - low
+        #     return tanh_output * range / 2 + (low + (0.5 * range))
+        # assert (env.action_space.high == -env.action_space.low)  # TODO tackle symmetry
 
-            critic = CriticNetwork(sess, state_dim, action_dim,
-                                   float(args['critic_lr']), float(args['tau']),
-                                   float(args['gamma']),
-                                   actor.get_num_trainable_vars())
-        else:
-            actor = load_model(P.join(args['Load_models_path'], 'actor.joblib'))
-            critic = load_model(P.join(args['Load_models_path'], 'critic.joblib'))
+        actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
+                             float(args['actor_lr']), float(args['tau']),
+                             int(args['minibatch_size']))
 
-        # %% TRAIN
+        critic = CriticNetwork(sess, state_dim, action_dim,
+                               float(args['critic_lr']), float(args['tau']),
+                               float(args['gamma']),
+                               actor.get_num_trainable_vars())
+
         actor_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(action_dim))
 
         if args['use_gym_monitor']:
@@ -443,27 +461,8 @@ def train_ddpg(args):
 
         train(sess, env, args, actor, critic, actor_noise)
 
-        # %% SAVE MODELS
-        actor.save(P.join(args['trained_models_path'], 'actor.joblib'))
-        critic.save(P.join(args['trained_models_path'], 'critic.joblib'))
-
         if args['use_gym_monitor']:
             env.monitor.close()
-
-
-class DDPG_Controller(object):
-    def __init__(self, models_path):
-        self.actor = load_model(models_path, 'actor.joblib')
-        self.state_history = []
-        self.action_history = []
-        self.reward_history = []
-
-    def policy(self, observation, reward, done, **kwargs):
-        if observation is None:
-            # return random action value in space bounds
-            return np.random.rand() * self.actor.action_bound
-        a = self.actor.predict(observation)  # TODO: check if sample time normalization needed?
-        return Action(basal=a[0], bolus=a[1])  # TODO: validate order
 
 
 if __name__ == '__main__':
@@ -494,4 +493,4 @@ if __name__ == '__main__':
 
     pp.pprint(args)
 
-    train_ddpg(args)
+    main(args)

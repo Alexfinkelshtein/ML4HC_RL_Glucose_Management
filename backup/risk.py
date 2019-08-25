@@ -8,14 +8,14 @@ def risk_index(BG, horizon):
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         BG_to_compute = BG[-horizon:]
-        #print(BG_to_compute)
-        fBG = 1.509 * (np.log(BG_to_compute)**1.084 - 5.381)
-        rl = 10 * fBG[fBG < 0]**2
-        rh = 10 * fBG[fBG > 0]**2
+        fBG = 1.509 * (np.log(BG_to_compute) ** 1.084 - 5.381)
+        rl = 10 * fBG[fBG < 0] ** 2
+        rh = 10 * fBG[fBG > 0] ** 2
         LBGI = np.nan_to_num(np.mean(rl))
         HBGI = np.nan_to_num(np.mean(rh))
         RI = LBGI + HBGI
     return (LBGI, HBGI, RI)
+
 
 def risk_index2(BG, horizon):
     # BG is in mg/dL
