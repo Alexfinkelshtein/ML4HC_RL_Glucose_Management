@@ -476,12 +476,13 @@ class DDPG_Controller(object):
         self.action_history = []
         self.reward_history = []
 
-    def policy(self, observation, reward, done, **kwargs):
+    def policy(self, observation):
         if observation is None:
             # return random action value in space bounds
-            return np.random.rand() * self.actor.action_bound
-        a = self.actor.predict(observation)  # TODO: check if sample time normalization needed?
-        return Action(basal=a[0], bolus=a[1])  # TODO: validate order
+            # return np.random.rand() * self.actor.action_bound
+            return 0
+        a = self.actor.predict(np.reshape(observation, (1, self.actor.s_dim)))  # TODO: check if sample time normalization needed?
+        return Action(basal=a[0], bolus=0)  # TODO: validate order
 
     def reset(self):
         pass

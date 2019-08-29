@@ -57,15 +57,11 @@ class T1DSimEnv(object):
         return self.scenario.start_time + timedelta(minutes=self.patient.t)
 
     def mini_step(self, action):
-        # current action
-        action_offset = 15  # ASSUMPTION: max pump 30
         patient_action = self.scenario.get_action(self.time)
-        basal = self.pump.basal(action.basal[0])  # making sure not out fo bounds
-        # basal = self.pump.basal(max(min(action.basal, action_offset), -action_offset))  # making sure not out fo bounds
-        # basal = self.pump.basal(action[0])  # CHANGED
-        # bolus = self.pump.bolus(max(min(action.bolus, action_offset), -action_offset))  # making sure not out fo bounds
-        # bolus = self.pump.bolus(action[1])  # CHANGED
-        # insulin = basal + bolus + action_offset * 2  # CHANGED
+        try:
+            basal = self.pump.basal(action.basal[0])
+        except:
+            basal = self.pump.basal(action.basal)
         insulin = basal
         CHO = patient_action.meal
         patient_mdl_act = Action(insulin=insulin, CHO=CHO)

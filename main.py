@@ -1,7 +1,6 @@
 from DDPG.ddpg import train_ddpg, DDPG_Controller
 from gym.envs.registration import register
 import os
-import datetime
 import numpy as np
 # imports
 from simglucose.simulation.user_interface import *
@@ -13,6 +12,7 @@ import tensorflow as tf
 from DDPG.ddpg import ActorNetwork
 import os.path as P
 register_matplotlib_converters()
+from datetime import datetime as dt
 import datetime
 
 # %% functions
@@ -56,10 +56,11 @@ def random_meals(num_meals=3, time_min=0, time_max=20, size_min=5, size_max=70):
 if __name__ == "__main__":
     # %% CONFIG\PATHS\LOGGER
     # mode = 'train'
-    mode = 'inference'
+    # mode = 'inference'
+    mode = "inference" if input("[1] for inference \n [2] for training") == '1' else "train"
 
     animate = False  # control simglucose graphic animations
-    patient_number = '2'
+    patient_number = 2
     patient_name = f'adolescent#00{patient_number}'
 
     summaries_base = r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Summaries'
@@ -68,9 +69,9 @@ if __name__ == "__main__":
     logging.basicConfig(filename=os.path.join(current_summary_path, 'log.log'), level=logging.INFO)
 
     # %% create scenario
-    now = datetime.datetime.now()
+    now = dt.now()
     start_hour = timedelta(hours=float(0))
-    start_time = datetime.combine(now.date(), datetime.min.time()) + start_hour
+    start_time = dt.combine(now.date(), dt.min.time()) + start_hour
     # meals_ = random_meals(num_meals=4)  # example for randomized scenario creation
     meals = [(1, 60), (3, 80), (5, 60)]  # format: list of tuples, where (meal_time, meal_size [grams])
     scenario = CustomScenario(start_time=start_time, scenario=meals)
@@ -85,7 +86,7 @@ if __name__ == "__main__":
 
     # %% DDPG Controller
     sensor_sample_time = 3
-    load_model = r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Summaries\166'
+    load_path = r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Summaries\200'
     args = {
         'env': f'simglucose-adolescent{patient_number}-v0',
         'random_seed': 1234,
@@ -99,14 +100,14 @@ if __name__ == "__main__":
         'monitor_dir': monitor_dir,
         'buffer_size': 1000000,
         'summary_dir': current_summary_path,
-        'max_episodes': 2,
+        'max_episodes': 6,
         'max_episode_len': 60 * 24 / sensor_sample_time,
         'trained_models_path': (current_summary_path, 'test'),  # Format: (path, model extension e.g critic_test.joblib)
         # 'Load_models_path': None  # if None train new models, otherwise load models from path actor\critic.joblib
-        'Load_models_path': (load_model, 'test')  # if None train new models, otherwise load models from path actor\critic.joblib
+        'Load_models_path': (load_path, 'test')  # if None train new models, otherwise load models from path actor\critic.joblib
     }
 
-    current_time = str(datetime.now())
+    current_time = str(dt.now())
     logging.info(f'Start Timestamp: {current_time}')
     args4print = json.dumps(args, sort_keys=True, indent=4)
     logging.info(f'Arguments:\n {args4print}')
@@ -116,13 +117,13 @@ if __name__ == "__main__":
         with tf.Session() as sess:
             # init simulation
             animate = True
-            patient_names = get_patients([1, 2])
+            patient_names = get_patients([patient_number])
             pump_name = get_insulin_pump(selection=2)
             # pump = InsulinPump.withName(pump_name)
             cgm_seed = 5
             cgm_sensor_name = get_cgm_sensor(selection=1)
 
-            sim_time = datetime.time(23)
+            sim_time = datetime.timedelta(days=1) #datetime.time(23)
             controller = BBController()
             start_time = '0'
             envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name)
@@ -132,6 +133,7 @@ if __name__ == "__main__":
             actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
                              float(args['actor_lr']), float(args['tau']),
                              int(args['minibatch_size']))
+            sess.run(tf.global_variables_initializer())
             actor.restore(sess, P.join(args['Load_models_path'][0], f"actor_{args['Load_models_path'][1]}"))
             our_controller = DDPG_Controller(actor=actor)
             env1 = envs[0]
@@ -140,4 +142,4 @@ if __name__ == "__main__":
             sim2 = SimObj(gym_env, our_controller, sim_time, animate=True, path=None)
             sim2.simulate()
 
-    logging.info(f'End Time: {str(datetime.now())}')
+    logging.info(f'End Time: {str(dt.now())}')

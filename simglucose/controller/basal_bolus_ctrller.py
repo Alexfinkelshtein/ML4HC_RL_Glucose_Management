@@ -33,6 +33,8 @@ class BBController(Controller):
 
 
     def _bb_policy(self, name, meal, glucose, env_sample_time):
+        # CHANGED: ADDED the slicing [0] to support our interval observation format
+        glucose = glucose[0]
         if any(self.quest.Name.str.match(name)):
             q = self.quest[self.quest.Name.str.match(name)]
             params = self.patient_params[self.patient_params.Name.str.match(

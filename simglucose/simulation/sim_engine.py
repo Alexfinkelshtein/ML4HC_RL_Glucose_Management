@@ -1,6 +1,7 @@
 import logging
 import time
 import os
+from DDPG.ddpg import DDPG_Controller
 
 pathos = True
 try:
@@ -27,13 +28,32 @@ class SimObj(object):
         self.path = path
 
     def simulate(self):
-        obs, reward, done, info = self.env.reset()
+        if isinstance(self.controller, DDPG_Controller):
+            obs = self.env.reset()
+            end_time = self.env.env.scenario.start_time + self.sim_time
+            current_time = self.env.env.scenario.start_time
+        else:
+            obs, reward, done, info = self.env.reset()
+            end_time = self.env.scenario.start_time + self.sim_time
+            current_time = self.env.scenario.start_time
         tic = time.time()
-        while self.env.time < self.env.scenario.start_time + self.sim_time:
+
+        while current_time < end_time:
             if self.animate:
-                self.env.render()
-            action = self.controller.policy(obs, reward, done, **info)
+                if isinstance(self.controller, DDPG_Controller):
+                    self.env.env.render()
+                else:
+                    self.env.render()
+            if isinstance(self.controller, DDPG_Controller):
+                action = self.controller.policy(obs)
+            else:
+                action = self.controller.policy(obs, reward, done, **info)
+
             obs, reward, done, info = self.env.step(action)
+            if isinstance(self.controller, DDPG_Controller):
+                current_time = self.env.env.time
+            else:
+                current_time = self.env.time
         toc = time.time()
         logger.info('Simulation took {} seconds.'.format(toc - tic))
 
