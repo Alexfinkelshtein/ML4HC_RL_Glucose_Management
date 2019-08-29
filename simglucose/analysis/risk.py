@@ -20,15 +20,15 @@ def risk_index(BG, horizon):
 def risk_index2(BG, horizon):
     # BG is in mg/dL
     # horizon in samples
-    hyper = 145
-    hypo = 60
+    hyper = 180
+    hypo = 70
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         # TODO: currently supports only horizon 1
         BG_to_compute = BG[-horizon:]
         fBG = BG_to_compute
         # rl = np.abs(fBG[np.array(fBG[0]) < hypo] - hypo) * 2
-        rl = np.abs(fBG[0] - hypo) * 2 if fBG[0] < hypo else 0
+        rl = np.abs(fBG[0] - hypo) * 5 if fBG[0] < hypo else 0
         # rh = np.abs(fBG[np.array(fBG[0]) > hyper] - hyper)
         rh = np.abs(fBG[0] - hyper) if fBG[0] > hyper else 0
         LBGI = np.nan_to_num(np.mean(rl))

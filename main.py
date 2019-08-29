@@ -8,7 +8,9 @@ from simglucose.simulation.user_interface import *
 import gym
 import logging
 import json
+from pandas.plotting import register_matplotlib_converters
 
+register_matplotlib_converters()
 
 # %% functions
 
@@ -80,12 +82,13 @@ if __name__ == "__main__":
 
     # %% DDPG Controller
     sensor_sample_time = 3
+    load_model = r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Summaries\166'
     args = {
         'env': f'simglucose-adolescent{patient_number}-v0',
         'random_seed': 1234,
         'actor_lr': 0.0005,
         'tau': 0.01,
-        'minibatch_size': 64,
+        'minibatch_size': 3,
         'critic_lr': 0.05,
         'gamma': 0.99,  # Discount factor acts as effective horizon: 1/(1-gamma) gamma = 0.98 -> horizon ~= 50 min
         'use_gym_monitor': True,
@@ -93,10 +96,11 @@ if __name__ == "__main__":
         'monitor_dir': monitor_dir,
         'buffer_size': 1000000,
         'summary_dir': current_summary_path,
-        'max_episodes': 5000,
+        'max_episodes': 2,
         'max_episode_len': 60 * 24 / sensor_sample_time,
-        'trained_models_path': current_summary_path,
-        'Load_models_path': None  # if None train new models, otherwise load models from path actor\critic.joblib
+        'trained_models_path': (current_summary_path, 'test'),  # Format: (path, model extension e.g critic_test.joblib)
+        # 'Load_models_path': None  # if None train new models, otherwise load models from path actor\critic.joblib
+        'Load_models_path': (load_model, 'test')  # if None train new models, otherwise load models from path actor\critic.joblib
     }
 
     current_time = str(datetime.now())
