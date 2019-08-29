@@ -9,8 +9,11 @@ import gym
 import logging
 import json
 from pandas.plotting import register_matplotlib_converters
-
+import tensorflow as tf
+from DDPG.ddpg import ActorNetwork
+import os.path as P
 register_matplotlib_converters()
+import datetime
 
 # %% functions
 
@@ -52,8 +55,8 @@ def random_meals(num_meals=3, time_min=0, time_max=20, size_min=5, size_max=70):
 
 if __name__ == "__main__":
     # %% CONFIG\PATHS\LOGGER
-    mode = 'train'
-    # mode = 'inference'
+    # mode = 'train'
+    mode = 'inference'
 
     animate = False  # control simglucose graphic animations
     patient_number = '2'
@@ -65,7 +68,7 @@ if __name__ == "__main__":
     logging.basicConfig(filename=os.path.join(current_summary_path, 'log.log'), level=logging.INFO)
 
     # %% create scenario
-    now = datetime.now()
+    now = datetime.datetime.now()
     start_hour = timedelta(hours=float(0))
     start_time = datetime.combine(now.date(), datetime.min.time()) + start_hour
     # meals_ = random_meals(num_meals=4)  # example for randomized scenario creation
@@ -78,7 +81,7 @@ if __name__ == "__main__":
              entry_point='simglucose.envs:T1DSimEnv',
              kwargs={'patient_name': patient_name, 'custom_scenario': scenario, 'animate': animate}
              )
-    env = gym.make('simglucose-adolescent2-v0')
+    gym_env = gym.make('simglucose-adolescent2-v0')
 
     # %% DDPG Controller
     sensor_sample_time = 3
@@ -110,21 +113,31 @@ if __name__ == "__main__":
     if mode == 'train':
         train_ddpg(args)
     if mode == 'inference':
-        our_controller = DDPG_Controller(args['Load_models_path'])
-        # init simulation
-        our_controller.react
-        animate = True
-        patient_names = get_patients([1, 2])
-        pump_name = get_insulin_pump(selection=2)
-        # pump = InsulinPump.withName(pump_name)
-        cgm_seed = 5
-        cgm_sensor_name = get_cgm_sensor(selection=1)
-        envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name)
-        env = envs[0]
+        with tf.Session() as sess:
+            # init simulation
+            animate = True
+            patient_names = get_patients([1, 2])
+            pump_name = get_insulin_pump(selection=2)
+            # pump = InsulinPump.withName(pump_name)
+            cgm_seed = 5
+            cgm_sensor_name = get_cgm_sensor(selection=1)
 
-        sim_time = 24
-        controller = BBController()
-        start_time = '0'
-        sim = SimObj(envs, controller, sim_time, animate=True, path=None)
+            sim_time = datetime.time(23)
+            controller = BBController()
+            start_time = '0'
+            envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name)
+            state_dim = gym_env.observation_space.shape[0]
+            action_dim = gym_env.action_space.shape[0]
+            action_bound = gym_env.action_space.high
+            actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
+                             float(args['actor_lr']), float(args['tau']),
+                             int(args['minibatch_size']))
+            actor.restore(sess, P.join(args['Load_models_path'][0], f"actor_{args['Load_models_path'][1]}"))
+            our_controller = DDPG_Controller(actor=actor)
+            env1 = envs[0]
+            sim1 = SimObj(env1, controller, sim_time, animate=True, path=None)
+            sim1.simulate()
+            sim2 = SimObj(gym_env, our_controller, sim_time, animate=True, path=None)
+            sim2.simulate()
 
     logging.info(f'End Time: {str(datetime.now())}')
