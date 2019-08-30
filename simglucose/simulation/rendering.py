@@ -7,9 +7,10 @@ logger = logging.getLogger(__name__)
 
 
 class Viewer(object):
-    def __init__(self, start_time, patient_name, figsize=None):
+    def __init__(self, start_time, patient_name, figsize=None, contoller_name=''):
         self.start_time = start_time
         self.patient_name = patient_name
+        self.contoller_name = contoller_name
         self.fig, self.axes, self.lines = self.initialize()
         self.update()
 
@@ -57,7 +58,7 @@ class Viewer(object):
         axes[3].xaxis.set_major_locator(mdates.DayLocator())
         axes[3].xaxis.set_major_formatter(mdates.DateFormatter('\n%b %d'))
 
-        axes[0].set_title(self.patient_name)
+        axes[0].set_title(f"Patient: {self.patient_name} with Controller: {self.contoller_name}")
 
         return fig, axes, lines
 

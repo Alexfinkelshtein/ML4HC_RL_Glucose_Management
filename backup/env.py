@@ -202,7 +202,7 @@ class T1DSimEnv(object):
             return
 
         if self.viewer is None:
-            self.viewer = Viewer(self.scenario.start_time, self.patient.name)
+            self.viewer = Viewer(self.scenario.start_time, self.patient.name, )
 
         self.viewer.render(self.show_history())
 

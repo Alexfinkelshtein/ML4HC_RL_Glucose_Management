@@ -280,34 +280,34 @@ def pick_controller():
     return controller
 
 
-def build_envs(scenario, start_time):
+def build_envs(scenario, start_time, controller_name=''):
     patient_names = pick_patients()
     cgm_sensor_name, cgm_seed = pick_cgm_sensor()
     insulin_pump_name = pick_insulin_pump()
     if scenario is None:
         scenario = pick_scenario()
 
-    def local_build_env(pname):
+    def local_build_env(pname, controller_name=''):
         patient = T1DPatient.withName(pname)
         cgm_sensor = CGMSensor.withName(cgm_sensor_name, seed=cgm_seed)
         insulin_pump = InsulinPump.withName(insulin_pump_name)
         scen = copy.deepcopy(scenario)
-        env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen)
+        env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen, controller_name=controller_name)
         return env
 
-    envs = [local_build_env(p) for p in patient_names]
+    envs = [local_build_env(p, controller_name) for p in patient_names]
     return envs
 
-def our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, insulin_pump_name):
-    def local_build_env(pname):
+def our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, insulin_pump_name, controller_name=''):
+    def local_build_env(pname, controller_name=''):
         patient = T1DPatient.withName(pname)
         cgm_sensor = CGMSensor.withName(cgm_sensor_name, seed=cgm_seed)
         insulin_pump = InsulinPump.withName(insulin_pump_name)
         scen = copy.deepcopy(scenario)
-        env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen)
+        env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen, controller_name=controller_name)
         return env
 
-    envs = [local_build_env(p) for p in patient_names]
+    envs = [local_build_env(p, controller_name) for p in patient_names]
     return envs
 
 
@@ -326,14 +326,15 @@ def create_sim_instance(sim_time=None,
                         controller=None,
                         start_time=None,
                         save_path=None,
-                        animate=True):
+                        animate=True,
+                        controller_name=''):
     if sim_time is None:
         sim_time = timedelta(hours=float(
             input('Input simulation time (hr): ')))
 
     if scenario is None:
         scenario = pick_scenario()
-    envs = build_envs(scenario, start_time)
+    envs = build_envs(scenario, start_time, controller_name=controller_name)
 
     if controller is None:
         controller = pick_controller()
@@ -354,7 +355,8 @@ def simulate(sim_time=None,
              start_time=None,
              save_path=None,
              animate=None,
-             parallel=None):
+             parallel=None,
+             controller_name=''):
     '''
     Main user interface.
     ----
@@ -406,7 +408,8 @@ def simulate(sim_time=None,
                                         controller=controller,
                                         start_time=start_time,
                                         save_path=save_path,
-                                        animate=animate)
+                                        animate=animate,
+                                        controller_name=controller_name)
     results = batch_sim(sim_instances, parallel=parallel)
 
     df = pd.concat(results, keys=[s.env.patient.name for s in sim_instances])

@@ -40,17 +40,14 @@ def risk_diff(BG_last_hour):
 
 class T1DSimEnv(object):
 
-    def __init__(self, patient, sensor, pump, scenario):
+    def __init__(self, patient, sensor, pump, scenario, controller_name=''):
         self.patient = patient
+        self.controller_name = controller_name
         self.sensor = sensor
         self.pump = pump
         self.scenario = scenario
-        # self.observation_space = spaces.Box(20, 350, (1, 1))
-        # self.action_space = spaces.Box(0, 400, (2, 1))
         self._reset()
 
-    # def seed(self, rand_seed):
-    #     self.sensor.seed = rand_seed
 
     @property
     def time(self):
@@ -183,7 +180,7 @@ class T1DSimEnv(object):
             return
 
         if self.viewer is None:
-            self.viewer = Viewer(self.scenario.start_time, self.patient.name)
+            self.viewer = Viewer(self.scenario.start_time, self.patient.name, self.controller_name)
 
         self.viewer.render(self.show_history())
 

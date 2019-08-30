@@ -31,7 +31,7 @@ def risk_index2(BG, horizon):
         rl = np.abs(fBG[0] - hypo) * 5 if fBG[0] < hypo else 0
         # rh = np.abs(fBG[np.array(fBG[0]) > hyper] - hyper)
         rh = np.abs(fBG[0] - hyper) if fBG[0] > hyper else 0
-        LBGI = np.nan_to_num(np.mean(rl))
-        HBGI = np.nan_to_num(np.mean(rh))
+        LBGI = np.nan_to_num(np.mean(rl)) * 10  # CHANGED
+        HBGI = np.nan_to_num(np.mean(rh)) * 10  # CHANGED
         RI = LBGI + HBGI
     return (LBGI, HBGI, RI)

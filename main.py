@@ -62,6 +62,7 @@ if __name__ == "__main__":
     animate = False  # control simglucose graphic animations
     patient_number = 2
     patient_name = f'adolescent#00{patient_number}'
+    controller_name = 'DDPG Controller'
 
     summaries_base = r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Summaries'
     monitor_dir = r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Monitor'
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     # acceptable parameters at simglucose_gym_env
     register(id='simglucose-adolescent2-v0',
              entry_point='simglucose.envs:T1DSimEnv',
-             kwargs={'patient_name': patient_name, 'custom_scenario': scenario, 'animate': animate}
+             kwargs={'patient_name': patient_name, 'custom_scenario': scenario, 'animate': animate, 'controller_name': controller_name}
              )
     gym_env = gym.make('simglucose-adolescent2-v0')
 
@@ -126,7 +127,7 @@ if __name__ == "__main__":
             sim_time = datetime.timedelta(days=1) #datetime.time(23)
             controller = BBController()
             start_time = '0'
-            envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name)
+            envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name, controller_name='BB Controller')
             state_dim = gym_env.observation_space.shape[0]
             action_dim = gym_env.action_space.shape[0]
             action_bound = gym_env.action_space.high
