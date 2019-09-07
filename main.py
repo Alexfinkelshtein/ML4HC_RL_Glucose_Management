@@ -64,8 +64,8 @@ if __name__ == "__main__":
     patient_name = f'adolescent#00{patient_number}'
     controller_name = 'DDPG Controller'
 
-    summaries_base = r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Summaries'
-    monitor_dir = r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Monitor'
+    summaries_base = r'C:\Users\lland\PycharmProjects\ML4HC_RL_Glucose_Managemen\Results\Summaries'
+    monitor_dir = r'C:\Users\lland\PycharmProjects\ML4HC_RL_Glucose_Managemen\Results\Monitor'
     current_summary_path = summary_path(summaries_base)
     logging.basicConfig(filename=os.path.join(current_summary_path, 'log.log'), level=logging.INFO)
 
@@ -87,24 +87,24 @@ if __name__ == "__main__":
 
     # %% DDPG Controller
     sensor_sample_time = 3
-    load_path = r'C:\Users\afinkels\Desktop\private\Technion\Master studies\Machine Learning for Healthcare\project\ML4HC_RL_Glucose_Management\Results\Summaries\200'
+    load_path = r'C:\Users\lland\PycharmProjects\ML4HC_RL_Glucose_Managemen\Results\Summaries\0'
     args = {
         'env': f'simglucose-adolescent{patient_number}-v0',
         'random_seed': 1234,
         'actor_lr': 0.0005,
         'tau': 0.01,
         'minibatch_size': 3,
-        'critic_lr': 0.05,
+        'critic_lr': 0.0025,
         'gamma': 0.99,  # Discount factor acts as effective horizon: 1/(1-gamma) gamma = 0.98 -> horizon ~= 50 min
         'use_gym_monitor': True,
         'render_env': True,
         'monitor_dir': monitor_dir,
         'buffer_size': 1000000,
         'summary_dir': current_summary_path,
-        'max_episodes': 6,
+        'max_episodes': 2000,
         'max_episode_len': 60 * 24 / sensor_sample_time,
         'trained_models_path': (current_summary_path, 'test'),  # Format: (path, model extension e.g critic_test.joblib)
-        # 'Load_models_path': None  # if None train new models, otherwise load models from path actor\critic.joblib
+        'Load_models_path': None, # if None train new models, otherwise load models from path actor\critic.joblib
         'Load_models_path': (load_path, 'test')  # if None train new models, otherwise load models from path actor\critic.joblib
     }
 

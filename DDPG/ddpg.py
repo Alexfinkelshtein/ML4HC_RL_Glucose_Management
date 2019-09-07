@@ -105,7 +105,7 @@ class ActorNetwork(object):
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-1, maxval=1)
         out = tflearn.fully_connected(
-            net, self.a_dim, activation='relu', weights_init=w_init)  # TODO maybe tanh + 1
+            net, self.a_dim, activation='sigmoid', weights_init=w_init)  # TODO maybe tanh + 1
         # Scale output to -action_bound to action_bound  # TODO: instead of multiply rescale map_to_range
         scaled_out = tf.multiply(out, self.action_bound)
         return inputs, out, scaled_out
@@ -194,7 +194,7 @@ class CriticNetwork(object):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
         # net = tflearn.fully_connected(inputs, 1200)
-        net = tflearn.fully_connected(inputs, 1200, activation='relu')
+        net = tflearn.fully_connected(inputs, 1200)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
         # Add the action tensor in the 2nd hidden layer
