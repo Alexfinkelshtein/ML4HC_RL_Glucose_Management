@@ -14,6 +14,8 @@ import os.path as P
 register_matplotlib_converters()
 from datetime import datetime as dt
 import datetime
+import yaml
+
 
 # %% functions
 
@@ -64,8 +66,10 @@ if __name__ == "__main__":
     patient_name = f'adolescent#00{patient_number}'
     controller_name = 'DDPG Controller'
 
-    summaries_base = r'C:\Users\lland\PycharmProjects\ML4HC_RL_Glucose_Managemen\Results\Summaries'
-    monitor_dir = r'C:\Users\lland\PycharmProjects\ML4HC_RL_Glucose_Managemen\Results\Monitor'
+    paths = yaml.load(open(r'PATHS.YAML'))
+    base_path = paths['base_path']
+    summaries_base = P.join(base_path, 'Results', 'Summaries')
+    monitor_dir = P.join(base_path, 'Results', 'Monitor')
     current_summary_path = summary_path(summaries_base)
     logging.basicConfig(filename=os.path.join(current_summary_path, 'log.log'), level=logging.INFO)
 
@@ -87,13 +91,13 @@ if __name__ == "__main__":
 
     # %% DDPG Controller
     sensor_sample_time = 3
-    load_path = r'C:\Users\lland\PycharmProjects\ML4HC_RL_Glucose_Managemen\Results\Summaries\0'
+    load_path = P.join(summaries_base, '23')
     args = {
         'env': f'simglucose-adolescent{patient_number}-v0',
         'random_seed': 1234,
         'actor_lr': 0.0005,
         'tau': 0.01,
-        'minibatch_size': 3,
+        'minibatch_size': 64,
         'critic_lr': 0.0025,
         'gamma': 0.99,  # Discount factor acts as effective horizon: 1/(1-gamma) gamma = 0.98 -> horizon ~= 50 min
         'use_gym_monitor': True,
@@ -126,7 +130,6 @@ if __name__ == "__main__":
 
             sim_time = datetime.timedelta(days=1) #datetime.time(23)
             controller = BBController()
-            start_time = '0'
             envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name, controller_name='BB Controller')
             state_dim = gym_env.observation_space.shape[0]
             action_dim = gym_env.action_space.shape[0]
