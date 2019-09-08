@@ -58,13 +58,19 @@ class SimObj(object):
         logger.info('Simulation took {} seconds.'.format(toc - tic))
 
     def results(self):
-        return self.env.show_history()
+        try:
+            return self.env.show_history()
+        except:
+            return self.env.env.show_history()
 
     def save_results(self):
         df = self.results()
         if not os.path.isdir(self.path):
             os.makedirs(self.path)
-        filename = os.path.join(self.path, str(self.env.patient.name) + '.csv')
+        try:
+            filename = os.path.join(self.path, str(self.env.patient.name) + '.csv')
+        except:
+            filename = os.path.join(self.path, str(self.env.env.patient.name) + '.csv')
         df.to_csv(filename)
 
     def reset(self):

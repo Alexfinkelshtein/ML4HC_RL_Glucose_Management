@@ -25,8 +25,12 @@ def ensemble_BG(BG, ax=None, plot_var=True, nstd=3):
         ax.fill_between(
             t, up_env, down_env, alpha=0.5, label='+/- {0}*std'.format(nstd))
     for p in BG:
-        ax.plot_date(
-            t, BG[p], '-', color='grey', alpha=0.5, lw=0.5, label='_nolegend_')
+        try:
+            ax.plot_date(
+                t, BG[p], '-', color='grey', alpha=0.5, lw=0.5, label='_nolegend_')
+        except:
+            ax.plot_date(
+                t, BG[p], '-', color='grey', alpha=0.5, lw=0.5, label='_nolegend_')
     ax.plot(t, mean_curve, lw=2, label='Mean Curve')
     ax.xaxis.set_minor_locator(mdates.HourLocator(interval=3))
     ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M\n'))
@@ -96,13 +100,13 @@ def risk_index_trace(df_BG, visualize=False):
     chunk_BG = [df_BG.iloc[i:i + 60, :] for i in range(0, len(df_BG), 60)]
 
     fBG = [
-        np.mean(1.509 * (np.log(BG[BG > 0])**1.084 - 5.381)) for BG in chunk_BG
+        np.mean(1.509 * (np.log(BG[BG > 0]) ** 1.084 - 5.381)) for BG in chunk_BG
     ]
 
     fBG_df = pd.concat(fBG, axis=1).transpose()
 
-    LBGI = 10 * (fBG_df * (fBG_df < 0))**2
-    HBGI = 10 * (fBG_df * (fBG_df > 0))**2
+    LBGI = 10 * (fBG_df * (fBG_df < 0)) ** 2
+    HBGI = 10 * (fBG_df * (fBG_df > 0)) ** 2
     RI = LBGI + HBGI
 
     ri_per_hour = pd.concat(
@@ -234,7 +238,7 @@ def CVGA(BG_list, label=None):
             edgecolors='k',
             zorder=4,
             label='%s (A: %d%%, B: %d%%, C: %d%%, D: %d%%, E: %d%%)' %
-            (l, 100 * A, 100 * B, 100 * C, 100 * D, 100 * E))
+                  (l, 100 * A, 100 * B, 100 * C, 100 * D, 100 * E))
         zone_stats.append((A, B, C, D, E))
 
     zone_stats = pd.DataFrame(zone_stats, columns=['A', 'B', 'C', 'D', 'E'])
