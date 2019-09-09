@@ -32,22 +32,22 @@ def risk_diff(BG_last_hour):
     else:
         _, _, risk_current = risk_index2([BG_last_hour[-1]], 1)  # Horizon
         _, _, risk_prev = risk_index2([BG_last_hour[-2]], 1)  # Horizon
-        normalized = lambda x: x/120
+        normalized = lambda x: x / 120
         # normalized = lambda x: x
-        #return (risk_current - risk_prev)
+        # return (risk_current - risk_prev)
         return -normalized(risk_current)
 
 
 class T1DSimEnv(object):
 
-    def __init__(self, patient, sensor, pump, scenario, controller_name=''):
+    def __init__(self, patient, sensor, pump, scenario, controller_name='', results_path=None):
         self.patient = patient
         self.controller_name = controller_name
         self.sensor = sensor
         self.pump = pump
         self.scenario = scenario
+        self.results_path = results_path
         self._reset()
-
 
     @property
     def time(self):
@@ -112,10 +112,10 @@ class T1DSimEnv(object):
         window_size = int(60 / self.sample_time)  # Horizon
         BG_last_hour = self.CGM_hist[-window_size:]
         reward = reward_fun(BG_last_hour)
-        #print (BG)
+        # print (BG)
         done = BG < 70 or BG > 350
         # done = False
-        done = self.patient.t == (24*60)/self.sample_time - 1*self.sample_time
+        done = self.patient.t == (24 * 60) / self.sample_time - 1 * self.sample_time
         cgm_s = self.CGM_hist[-window_size:]
         ins_s = self.insulin_hist[-window_size:]
         cho_s = self.CHO_hist[-window_size:]
@@ -180,7 +180,8 @@ class T1DSimEnv(object):
             return
 
         if self.viewer is None:
-            self.viewer = Viewer(self.scenario.start_time, self.patient.name, self.controller_name)
+            self.viewer = Viewer(self.scenario.start_time, self.patient.name, self.controller_name,
+                                 save_path=self.results_path)
 
         self.viewer.render(self.show_history())
 

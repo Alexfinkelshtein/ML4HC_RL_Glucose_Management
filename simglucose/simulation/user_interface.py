@@ -298,13 +298,13 @@ def build_envs(scenario, start_time, controller_name=''):
     envs = [local_build_env(p, controller_name) for p in patient_names]
     return envs
 
-def our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, insulin_pump_name, controller_name=''):
+def our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, insulin_pump_name, controller_name='', results_path=None):
     def local_build_env(pname, controller_name=''):
         patient = T1DPatient.withName(pname)
         cgm_sensor = CGMSensor.withName(cgm_sensor_name, seed=cgm_seed)
         insulin_pump = InsulinPump.withName(insulin_pump_name)
         scen = copy.deepcopy(scenario)
-        env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen, controller_name=controller_name)
+        env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen, controller_name=controller_name, results_path=results_path)
         return env
 
     envs = [local_build_env(p, controller_name) for p in patient_names]

@@ -2,15 +2,16 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import logging
 from datetime import timedelta
-
+import os
 logger = logging.getLogger(__name__)
 
 
 class Viewer(object):
-    def __init__(self, start_time, patient_name, figsize=None, controller_name=''):
+    def __init__(self, start_time, patient_name, figsize=None, controller_name='', save_path=None):
         self.start_time = start_time
         self.patient_name = patient_name
         self.controller_name = controller_name
+        self.save_path = save_path
         self.fig, self.axes, self.lines = self.initialize()
         self.update()
 
@@ -119,6 +120,11 @@ class Viewer(object):
         self.update()
 
     def close(self):
+        try:
+            print("Saving Viewer Trace")
+            self.fig.savefig(os.path.join(self.save_path, 'Viewer_trace.png'))
+        except:
+            print("couldn't save figure")
         plt.close(self.fig)
 
 

@@ -99,7 +99,8 @@ if __name__ == "__main__":
     register(id='simglucose-adolescent2-v0',
              entry_point='simglucose.envs:T1DSimEnv',
              kwargs={'patient_name': patient_name, 'custom_scenario': scenario, 'animate': animate,
-                     'controller_name': controller_name}
+                     'controller_name': controller_name, 'results_path': P.join(current_summary_path, 'Analysis_DDPG')
+}
              )
     gym_env = gym.make('simglucose-adolescent2-v0')
 
@@ -142,27 +143,33 @@ if __name__ == "__main__":
             cgm_seed = 5
             cgm_sensor_name = get_cgm_sensor(selection=1)
             sim_time = datetime.timedelta(hours=8)  # datetime.time(23)
-
-            # Original Controller
-            controller = BBController()
-            envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name,
-                                  controller_name='BB Controller')
-            env1 = envs[0]
-            sim1 = SimObj(env1, controller, sim_time, animate=animate, path=analysis_path + '_BB')
-            results1 = sim(sim1)
-            report(results1, analysis_path + '_BB')
+            control = input("Choose controller:\n[1]DDPG\n[2]BB\n")
+            if control == '2':
+                # Original Controller
+                controller = BBController()
+                envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name,
+                                      controller_name='BB Controller', results_path=analysis_path + '_BB')
+                env_BB = envs[0]
+                sim1 = SimObj(env_BB, controller, sim_time, animate=animate, path=analysis_path + '_BB')
+                results1 = sim(sim1)
+                report(results1, analysis_path + '_BB')
+                env_BB.render()
+                env_BB.viewer.close()
 
             # Our Controller
-            state_dim = gym_env.observation_space.shape[0]
-            action_dim = gym_env.action_space.shape[0]
-            action_bound = gym_env.action_space.high
-            actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
-                                 float(args['actor_lr']), float(args['tau']),
-                                 int(args['minibatch_size']))
-            sess.run(tf.global_variables_initializer())
-            actor.restore(sess, P.join(args['Load_models_path'][0], f"actor_{args['Load_models_path'][1]}"))
-            our_controller = DDPG_Controller(actor=actor)
-            sim2 = SimObj(gym_env, our_controller, sim_time, animate=animate, path=analysis_path + '_DDPG')
-            results2 = sim(sim2)
-            report(results2, analysis_path + '_DDPG')
+            else:
+                state_dim = gym_env.observation_space.shape[0]
+                action_dim = gym_env.action_space.shape[0]
+                action_bound = gym_env.action_space.high
+                actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
+                                     float(args['actor_lr']), float(args['tau']),
+                                     int(args['minibatch_size']))
+                sess.run(tf.global_variables_initializer())
+                actor.restore(sess, P.join(args['Load_models_path'][0], f"actor_{args['Load_models_path'][1]}"))
+                our_controller = DDPG_Controller(actor=actor)
+                sim2 = SimObj(gym_env, our_controller, sim_time, animate=animate, path=analysis_path + '_DDPG')
+                results2 = sim(sim2)
+                report(results2, analysis_path + '_DDPG')
+                gym_env.env.render()
+                gym_env.env.viewer.close()
     logging.info(f'End Time: {str(dt.now())}')
