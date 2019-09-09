@@ -1,5 +1,7 @@
 from DDPG.ddpg import train_ddpg, DDPG_Controller
 from gym.envs.registration import register
+from simglucose.simulation.sim_engine import sim
+from simglucose.analysis.report import report
 import os
 import numpy as np
 # imports
@@ -140,33 +142,27 @@ if __name__ == "__main__":
             cgm_seed = 5
             cgm_sensor_name = get_cgm_sensor(selection=1)
             sim_time = datetime.timedelta(hours=8)  # datetime.time(23)
-            # Original Controller
-            controller = BBController()
-            envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name,
-                                  controller_name='BB Controller')
-            env1 = envs[0]
-            sim1 = SimObj(env1, controller, sim_time, animate=animate, path=analysis_path)
-            from simglucose.simulation.sim_engine import sim
-            from simglucose.analysis.report import report
 
-            # simulate(sim_time=sim_time, scenario=scenario, controller=controller, start_time=start_time,
-            #          save_path=current_summary_path, animate=animate,
-            #          parallel=True,
-            #          controller_name='Their Controller',
-            #          envs=envs)
-            results1 = sim(sim1)
-            report(results1, analysis_path)
+            # Original Controller
+            # controller = BBController()
+            # envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name,
+            #                       controller_name='BB Controller')
+            # env1 = envs[0]
+            # sim1 = SimObj(env1, controller, sim_time, animate=animate, path=analysis_path)
+            # results1 = sim(sim1)
+            # report(results1, analysis_path)
+
             # Our Controller
-            # state_dim = gym_env.observation_space.shape[0]
-            # action_dim = gym_env.action_space.shape[0]
-            # action_bound = gym_env.action_space.high
-            # actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
-            #                      float(args['actor_lr']), float(args['tau']),
-            #                      int(args['minibatch_size']))
-            # sess.run(tf.global_variables_initializer())
-            # actor.restore(sess, P.join(args['Load_models_path'][0], f"actor_{args['Load_models_path'][1]}"))
-            # our_controller = DDPG_Controller(actor=actor)
-            # sim2 = SimObj(gym_env, our_controller, sim_time, animate=animate, path=analysis_path)
-            # results2 = sim(sim2)
-            # report(results2, analysis_path)
+            state_dim = gym_env.observation_space.shape[0]
+            action_dim = gym_env.action_space.shape[0]
+            action_bound = gym_env.action_space.high
+            actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
+                                 float(args['actor_lr']), float(args['tau']),
+                                 int(args['minibatch_size']))
+            sess.run(tf.global_variables_initializer())
+            actor.restore(sess, P.join(args['Load_models_path'][0], f"actor_{args['Load_models_path'][1]}"))
+            our_controller = DDPG_Controller(actor=actor)
+            sim2 = SimObj(gym_env, our_controller, sim_time, animate=animate, path=analysis_path)
+            results2 = sim(sim2)
+            report(results2, analysis_path)
     logging.info(f'End Time: {str(dt.now())}')

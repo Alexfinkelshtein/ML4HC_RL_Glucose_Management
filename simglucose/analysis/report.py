@@ -95,16 +95,27 @@ def percent_stats(BG, ax=None):
 def risk_index_trace(df_BG, visualize=False):
     chunk_BG = [df_BG.iloc[i:i + 60, :] for i in range(0, len(df_BG), 60)]
 
-    fBG = [
-        np.mean(1.509 * (np.log(BG[BG > 0]) ** 1.084 - 5.381)) for BG in chunk_BG
-    ]
+    # Original Risk:
+    # fBG = [
+    #     np.mean(1.509 * (np.log(BG[BG > 0]) ** 1.084 - 5.381)) for BG in chunk_BG
+    # ]
+    #
+    # fBG_df = pd.concat(fBG, axis=1).transpose()
+    #
+    # LBGI = 10 * (fBG_df * (fBG_df < 0)) ** 2
+    # HBGI = 10 * (fBG_df * (fBG_df > 0)) ** 2
+    # RI = LBGI + HBGI
 
+    # Our Risk:
+    hyper = 180
+    hypo = 70
+    fBG = chunk_BG
     fBG_df = pd.concat(fBG, axis=1).transpose()
 
-    LBGI = 10 * (fBG_df * (fBG_df < 0)) ** 2
-    HBGI = 10 * (fBG_df * (fBG_df > 0)) ** 2
-    RI = LBGI + HBGI
+    LBGI = (hypo - (fBG_df * (fBG_df < hypo))) * 10 * 10
+    HBGI = ((fBG_df * (fBG_df > hyper)) - hyper) * 10
 
+    RI = LBGI + HBGI
     ri_per_hour = pd.concat(
         [LBGI.transpose(), HBGI.transpose(),
          RI.transpose()],
@@ -247,6 +258,7 @@ def report(df, save_path=None):
     BG = pd.DataFrame(df.unstack(level=0).BG)
 
     fig_ensemble, ax1, ax2, ax3 = ensemblePlot(df)
+    plt.show()
     pstats, fig_percent, ax4 = percent_stats(BG)
     ri_per_hour, ri_mean, fig_ri, ax5 = risk_index_trace(BG, visualize=False)
     zone_stats, fig_cvga, ax6 = CVGA(BG, label='')
