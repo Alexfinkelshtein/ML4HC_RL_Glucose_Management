@@ -144,13 +144,13 @@ if __name__ == "__main__":
             sim_time = datetime.timedelta(hours=8)  # datetime.time(23)
 
             # Original Controller
-            # controller = BBController()
-            # envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name,
-            #                       controller_name='BB Controller')
-            # env1 = envs[0]
-            # sim1 = SimObj(env1, controller, sim_time, animate=animate, path=analysis_path)
-            # results1 = sim(sim1)
-            # report(results1, analysis_path)
+            controller = BBController()
+            envs = our_build_envs(scenario, start_time, patient_names, cgm_sensor_name, cgm_seed, pump_name,
+                                  controller_name='BB Controller')
+            env1 = envs[0]
+            sim1 = SimObj(env1, controller, sim_time, animate=animate, path=analysis_path + '_BB')
+            results1 = sim(sim1)
+            report(results1, analysis_path + '_BB')
 
             # Our Controller
             state_dim = gym_env.observation_space.shape[0]
@@ -162,7 +162,7 @@ if __name__ == "__main__":
             sess.run(tf.global_variables_initializer())
             actor.restore(sess, P.join(args['Load_models_path'][0], f"actor_{args['Load_models_path'][1]}"))
             our_controller = DDPG_Controller(actor=actor)
-            sim2 = SimObj(gym_env, our_controller, sim_time, animate=animate, path=analysis_path)
+            sim2 = SimObj(gym_env, our_controller, sim_time, animate=animate, path=analysis_path + '_DDPG')
             results2 = sim(sim2)
-            report(results2, analysis_path)
+            report(results2, analysis_path + '_DDPG')
     logging.info(f'End Time: {str(dt.now())}')
