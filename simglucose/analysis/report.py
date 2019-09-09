@@ -25,12 +25,8 @@ def ensemble_BG(BG, ax=None, plot_var=True, nstd=3):
         ax.fill_between(
             t, up_env, down_env, alpha=0.5, label='+/- {0}*std'.format(nstd))
     for p in BG:
-        try:
-            ax.plot_date(
-                t, BG[p], '-', color='grey', alpha=0.5, lw=0.5, label='_nolegend_')
-        except:
-            ax.plot_date(
-                t, BG[p], '-', color='grey', alpha=0.5, lw=0.5, label='_nolegend_')
+        ax.plot_date(
+            t, BG[p], '-', color='grey', alpha=0.5, lw=0.5, label='_nolegend_')
     ax.plot(t, mean_curve, lw=2, label='Mean Curve')
     ax.xaxis.set_minor_locator(mdates.HourLocator(interval=3))
     ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M\n'))
@@ -49,9 +45,9 @@ def ensemble_BG(BG, ax=None, plot_var=True, nstd=3):
 
 
 def ensemblePlot(df):
-    df_BG = df.unstack(level=0).BG
-    df_CGM = df.unstack(level=0).CGM
-    df_CHO = df.unstack(level=0).CHO
+    df_BG = pd.DataFrame(df.unstack(level=0).BG)
+    df_CGM = pd.DataFrame(df.unstack(level=0).CGM)
+    df_CHO = pd.DataFrame(df.unstack(level=0).CHO)
     fig = plt.figure()
     ax1 = fig.add_subplot(311)
     ax2 = fig.add_subplot(312)
@@ -248,7 +244,7 @@ def CVGA(BG_list, label=None):
 
 
 def report(df, save_path=None):
-    BG = df.unstack(level=0).BG
+    BG = pd.DataFrame(df.unstack(level=0).BG)
 
     fig_ensemble, ax1, ax2, ax3 = ensemblePlot(df)
     pstats, fig_percent, ax4 = percent_stats(BG)

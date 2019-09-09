@@ -77,7 +77,7 @@ if __name__ == "__main__":
     else:
         current_summary_path = load_path
     logging.basicConfig(filename=os.path.join(current_summary_path, 'log.log'), level=logging.INFO)
-    animate = True  # control simglucose graphic animations
+    animate = False  # control simglucose graphic animations
     patient_number = 2
     patient_name = f'adolescent#00{patient_number}'
     controller_name = 'DDPG Controller'
@@ -155,18 +155,18 @@ if __name__ == "__main__":
             #          controller_name='Their Controller',
             #          envs=envs)
             results1 = sim(sim1)
-            # report(results1, analysis_path)
+            report(results1, analysis_path)
             # Our Controller
-            state_dim = gym_env.observation_space.shape[0]
-            action_dim = gym_env.action_space.shape[0]
-            action_bound = gym_env.action_space.high
-            actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
-                                 float(args['actor_lr']), float(args['tau']),
-                                 int(args['minibatch_size']))
-            sess.run(tf.global_variables_initializer())
-            actor.restore(sess, P.join(args['Load_models_path'][0], f"actor_{args['Load_models_path'][1]}"))
-            our_controller = DDPG_Controller(actor=actor)
-            sim2 = SimObj(gym_env, our_controller, sim_time, animate=animate, path=analysis_path)
-            results2 = sim(sim2)
+            # state_dim = gym_env.observation_space.shape[0]
+            # action_dim = gym_env.action_space.shape[0]
+            # action_bound = gym_env.action_space.high
+            # actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
+            #                      float(args['actor_lr']), float(args['tau']),
+            #                      int(args['minibatch_size']))
+            # sess.run(tf.global_variables_initializer())
+            # actor.restore(sess, P.join(args['Load_models_path'][0], f"actor_{args['Load_models_path'][1]}"))
+            # our_controller = DDPG_Controller(actor=actor)
+            # sim2 = SimObj(gym_env, our_controller, sim_time, animate=animate, path=analysis_path)
+            # results2 = sim(sim2)
             # report(results2, analysis_path)
     logging.info(f'End Time: {str(dt.now())}')
