@@ -267,8 +267,9 @@ def report(df, save_path=None):
     ri_per_hour, ri_mean, fig_ri, ax5 = risk_index_trace(BG, visualize=False)
     zone_stats, fig_cvga, ax6 = CVGA(BG, label='')
     axes = [ax1, ax2, ax3, ax4, ax5, ax6]
-    figs = [fig_ensemble, fig_percent, fig_ri, fig_cvga]
-    results = pd.concat([pstats, ri_mean], axis=1)
+    # axes = [ax1, ax2, ax3, ax4, ax6]
+    figs = [fig_ensemble, fig_percent, fig_cvga]
+    results = pd.concat([pstats], axis=1)
 
     if save_path is not None:
         results.to_csv(os.path.join(save_path, 'performance_stats.csv'))
@@ -282,6 +283,7 @@ def report(df, save_path=None):
 
     plt.show()
     return results, ri_per_hour, zone_stats, figs, axes
+    # return results, zone_stats, figs, axes
 
 
 if __name__ == '__main__':

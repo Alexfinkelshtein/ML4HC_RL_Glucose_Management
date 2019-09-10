@@ -19,6 +19,7 @@ from datetime import datetime as dt
 import datetime
 import yaml
 import warnings
+from tqdm import tqdm
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
@@ -135,7 +136,7 @@ if __name__ == "__main__":
 
     if mode == 'train':
         n_scenarios = 20
-        for i in range(1, n_scenarios + 1):
+        for i in tqdm(range(1, n_scenarios + 1)):
             id = f'simglucose-adolescent2-v{i}'
             register(id=id,
                      entry_point='simglucose.envs:T1DSimEnv',
