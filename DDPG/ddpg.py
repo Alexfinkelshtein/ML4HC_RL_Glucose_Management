@@ -26,7 +26,7 @@ from os import path as P
 import keras.backend as K
 from collections import namedtuple
 from tensorflow import train
-
+import json
 Action = namedtuple('ctrller_action', ['basal', 'bolus'])
 
 
@@ -281,19 +281,19 @@ class OrnsteinUhlenbeckActionNoise:
 
 def build_summaries():
     episode_reward = tf.Variable(0.)
-    tf.summary.scalar("Reward", episode_reward)
+    tf.compat.v1.summary.scalar("Reward", episode_reward)
 
     episode_ave_max_q = tf.Variable(0.)
-    tf.summary.scalar("Qmax_Value", episode_ave_max_q)
+    tf.compat.v1.summary.scalar("Qmax_Value", episode_ave_max_q)
 
     loss_critic = tf.Variable(0.)
-    tf.summary.scalar("loss_critic", loss_critic)
+    tf.compat.v1.summary.scalar("loss_critic", loss_critic)
 
     image = tf.Variable(np.zeros((1, 480, 640, 4)), expected_shape=(None, 480, 640, 4), dtype=tf.uint8)
-    tf.summary.image("CGM plot", image)
+    tf.compat.v1.summary.image("CGM_plot", image)
 
     summary_vars = [episode_reward, episode_ave_max_q, loss_critic, image]
-    summary_ops = tf.summary.merge_all()
+    summary_ops = tf.compat.v1.summary.merge_all()  # summary.merge_all()
     return summary_ops, summary_vars
 
 
@@ -314,7 +314,7 @@ def train(sess, env, args, actor, critic, actor_noise):
 
     # Initialize replay memory
     replay_buffer = ReplayBuffer(int(args['buffer_size']), int(args['random_seed']))
-
+    replay_buffer.load(args['buffer_path'])
     # Needed to enable BatchNorm.
     # This hurts the performance on Pendulum but could be useful
     # in other environments.
@@ -423,11 +423,13 @@ def train(sess, env, args, actor, critic, actor_noise):
                 print('| Reward: {:.4f} | Episode: {:d} | Qmax: {:.4f}'.format(float(ep_reward), i,
                                                                                (ep_ave_max_q / float(j))))
                 break
-
+    replay_buffer.save(args['buffer_path'])
 
 def train_ddpg(args):
     with tf.Session() as sess:
         # %% ENVIRONMENT SETUP
+        args4print = json.dumps(args, sort_keys=True, indent=4)
+        print(args4print)
         env = gym.make(args['env'])
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
@@ -445,7 +447,7 @@ def train_ddpg(args):
                                float(args['critic_lr']), float(args['tau']),
                                float(args['gamma']),
                                actor.get_num_trainable_vars())
-        if args['Load_models_path'] is not None:
+        if args['Load_models_path'][0] is not None:
             critic.restore(sess, P.join(args['Load_models_path'][0], f"critic_{args['Load_models_path'][1]}"))
             actor.restore(sess, P.join(args['Load_models_path'][0], f"actor_{args['Load_models_path'][1]}"))
 
@@ -467,6 +469,9 @@ def train_ddpg(args):
         if args['use_gym_monitor']:
             # env.monitor.close()
             env.close()  # CHANGED
+    print("Finished Training Clearing TensorFlow Graph")
+    tf.reset_default_graph()
+
 
 
 class DDPG_Controller(object):

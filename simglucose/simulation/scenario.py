@@ -84,6 +84,7 @@ class CustomScenario(Scenario):
 
 
 def parseTime(time, start_time):
+    time = int(time)
     if isinstance(time, (int, float)):
         t = start_time + timedelta(minutes=round(time * 60.0))
     elif isinstance(time, timedelta):

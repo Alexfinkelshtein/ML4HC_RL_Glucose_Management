@@ -51,14 +51,14 @@ def random_meal(time_min=0, time_max=20, size_min=5, size_max=70):
     return (time, size)
 
 
-def random_meals(num_meals=3, time_min=0, time_max=20, size_min=5, size_max=70):
+def random_meals(num_meals=3, time_min=0, time_max=10, size_min=5, size_max=70):
     times = []
-    sizes = []
     meals = []
     for i in range(num_meals):
-        (time, size) = random_meal(time_min=0, time_max=20, size_min=5, size_max=70)
+        (time, size) = random_meal(time_min=time_min, time_max=time_max, size_min=size_min, size_max=size_max)
         if time not in times:  # avoid having two meals at same time
             meals.append((time, size))
+            times.append(time)
     return meals
 
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     monitor_dir = P.join(base_path, 'Results', 'Monitor')
     # mode = 'train'
     # mode = 'inference'
-    mode = "inference" if input("[1] for inference \n [2] for training") == '1' else "train"
+    mode = "inference" if input("[1] for inference \n[2] for training\n") == '1' else "train"
     model_num = input("\n->Enter Model Number \n (0 if new model)")
     load_path = None if model_num == '0' else P.join(summaries_base, model_num)
     # load_path = P.join(summaries_base, '23')
@@ -84,8 +84,6 @@ if __name__ == "__main__":
     patient_name = f'adolescent#00{patient_number}'
     controller_name = 'DDPG Controller'
 
-
-
     # %% create scenario
     now = dt.now()
     start_hour = timedelta(hours=float(0))
@@ -93,16 +91,8 @@ if __name__ == "__main__":
     # meals_ = random_meals(num_meals=4)  # example for randomized scenario creation
     meals = [(1, 60), (3, 80), (5, 60)]  # format: list of tuples, where (meal_time, meal_size [grams])
     scenario = CustomScenario(start_time=start_time, scenario=meals)
+    # scenario = CustomScenario(start_time=start_time, scenario=random_meals(num_meals=3))
     # %% REGISTER GYM ENVIRONMENT
-
-    # acceptable parameters at simglucose_gym_env
-    register(id='simglucose-adolescent2-v0',
-             entry_point='simglucose.envs:T1DSimEnv',
-             kwargs={'patient_name': patient_name, 'custom_scenario': scenario, 'animate': animate,
-                     'controller_name': controller_name, 'results_path': P.join(current_summary_path, 'Analysis_DDPG')
-}
-             )
-    gym_env = gym.make('simglucose-adolescent2-v0')
 
     # %% DDPG Controller
     sensor_sample_time = 3
@@ -120,20 +110,48 @@ if __name__ == "__main__":
         'monitor_dir': monitor_dir,
         'buffer_size': 1000000,
         'summary_dir': current_summary_path,
-        'max_episodes': 2000,
+        'max_episodes': 300,
         'max_episode_len': 60 * 24 / sensor_sample_time,
         'trained_models_path': (current_summary_path, 'test'),  # Format: (path, model extension e.g critic_test.joblib)
-        'Load_models_path': None,  # if None train new models, otherwise load models from path actor\critic.joblib
-        'Load_models_path': (load_path, 'test')
+        # 'Load_models_path': None,  # if None train new models, otherwise load models from path actor\critic.joblib
+        'Load_models_path': (load_path, 'test'),
+        'buffer_path': P.join(base_path, 'Results', 'Buffer_memory')
         # if None train new models, otherwise load models from path actor\critic.joblib
     }
-
     current_time = str(dt.now())
     logging.info(f'Start Timestamp: {current_time}')
     args4print = json.dumps(args, sort_keys=True, indent=4)
     logging.info(f'Arguments:\n {args4print}')
+
+    # acceptable parameters at simglucose_gym_env
+    register(id='simglucose-adolescent2-v0',
+             entry_point='simglucose.envs:T1DSimEnv',
+             kwargs={'patient_name': patient_name, 'custom_scenario': scenario, 'animate': animate,
+                     'controller_name': controller_name, 'results_path': P.join(current_summary_path, 'Analysis_DDPG')
+                     }
+             )
+
+    gym_env = gym.make('simglucose-adolescent2-v0')
+
     if mode == 'train':
-        train_ddpg(args)
+        n_scenarios = 20
+        for i in range(1, n_scenarios + 1):
+            id = f'simglucose-adolescent2-v{i}'
+            register(id=id,
+                     entry_point='simglucose.envs:T1DSimEnv',
+                     kwargs={'patient_name': patient_name,
+                             'custom_scenario': CustomScenario(start_time=start_time,
+                                                               scenario=random_meals(
+                                                                   num_meals=3, time_max=5)),
+                             'animate': animate,
+                             'controller_name': controller_name,
+                             'results_path': P.join(current_summary_path, 'Analysis_DDPG')
+                             }
+                     )
+            gym_env = gym.make(id)
+            args['env'] = id
+            train_ddpg(args)
+            args['Load_models_path'] = (current_summary_path, 'test')
     if mode == 'inference':
         with tf.Session() as sess:
             analysis_path = P.join(current_summary_path, 'Analysis')
