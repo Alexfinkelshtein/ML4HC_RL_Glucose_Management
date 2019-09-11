@@ -111,12 +111,11 @@ if __name__ == "__main__":
         'monitor_dir': monitor_dir,
         'buffer_size': 1000000,
         'summary_dir': current_summary_path,
-        'max_episodes': 300,
+        'max_episodes': 2000,
         'max_episode_len': 60 * 24 / sensor_sample_time,
         'trained_models_path': (current_summary_path, 'test'),  # Format: (path, model extension e.g critic_test.joblib)
         # 'Load_models_path': None,  # if None train new models, otherwise load models from path actor\critic.joblib
         'Load_models_path': (load_path, 'test'),
-        'buffer_path': P.join(base_path, 'Results', 'Buffer_memory')
         # if None train new models, otherwise load models from path actor\critic.joblib
     }
     current_time = str(dt.now())
@@ -135,24 +134,33 @@ if __name__ == "__main__":
     gym_env = gym.make('simglucose-adolescent2-v0')
 
     if mode == 'train':
-        n_scenarios = 20
-        for i in tqdm(range(1, n_scenarios + 1)):
-            id = f'simglucose-adolescent2-v{i}'
-            register(id=id,
-                     entry_point='simglucose.envs:T1DSimEnv',
-                     kwargs={'patient_name': patient_name,
-                             'custom_scenario': CustomScenario(start_time=start_time,
-                                                               scenario=random_meals(
-                                                                   num_meals=3, time_max=5)),
-                             'animate': animate,
-                             'controller_name': controller_name,
-                             'results_path': P.join(current_summary_path, 'Analysis_DDPG')
-                             }
-                     )
-            gym_env = gym.make(id)
-            args['env'] = id
+        if int(input("Load Buffer Memory?\n[0]No\n[1]Yes\n")):
+            args['buffer_path'] = P.join(base_path, 'Results', 'Buffer_memory')
+        else:
+            args['buffer_path'] = None
+        single_scenario = True if input(
+            "Choose training type:\n[0] Single Scenario\n[1] Multiple Scenarios\n") == 0 else False
+        if single_scenario:
             train_ddpg(args)
-            args['Load_models_path'] = (current_summary_path, 'test')
+        else:
+            n_scenarios = 20
+            for i in tqdm(range(1, n_scenarios + 1)):
+                id = f'simglucose-adolescent2-v{i}'
+                register(id=id,
+                         entry_point='simglucose.envs:T1DSimEnv',
+                         kwargs={'patient_name': patient_name,
+                                 'custom_scenario': CustomScenario(start_time=start_time,
+                                                                   scenario=random_meals(
+                                                                       num_meals=3, time_max=5)),
+                                 'animate': animate,
+                                 'controller_name': controller_name,
+                                 'results_path': P.join(current_summary_path, 'Analysis_DDPG')
+                                 }
+                         )
+                gym_env = gym.make(id)
+                args['env'] = id
+                train_ddpg(args)
+                args['Load_models_path'] = (current_summary_path, 'test')
     if mode == 'inference':
         with tf.Session() as sess:
             analysis_path = P.join(current_summary_path, 'Analysis')

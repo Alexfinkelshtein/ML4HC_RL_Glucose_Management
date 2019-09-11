@@ -53,14 +53,17 @@ class ReplayBuffer(object):
         self.count = 0
 
     def save(self, path):
-        pickle.dump(self.buffer, open(P.join(path, 'replay_buffer.pkl'), 'wb'))
-        print("replay buffer saved")
+        try:
+            pickle.dump(self.buffer, open(P.join(path, 'replay_buffer.pkl'), 'wb'))
+            print("replay buffer saved")
+        except:
+            print("[INFO] Replay Buffer Not Saved")
 
     def load(self, path):
         try:
             self.buffer = pickle.load(open(P.join(path, 'replay_buffer.pkl'), 'rb'))
-            print("replay buffer loaded")
+            print("[INFO] Replay Buffer Loaded")
         except:
-            print("couldn't load")
+            print("[INFO] Couldn't Load Previous Buffer Memory")
             pass
 
