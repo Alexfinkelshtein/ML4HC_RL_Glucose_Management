@@ -180,7 +180,7 @@ class CriticNetwork(object):
 
         # Define loss and optimization Op
         self.loss = tflearn.mean_square(self.predicted_q_value, self.out)
-        self.optimize = tf.train.AdamOptimizer(
+        self.optimize = tf.train.AdadeltaOptimizer(
             self.learning_rate).minimize(self.loss)
 
         # Get the gradient of the net w.r.t. the action.
@@ -414,7 +414,6 @@ def train(sess, env, args, actor, critic, actor_noise):
                     summary_vars[1]: ep_ave_max_q / float(j),
                     summary_vars[2]: float(np.mean(loss_critic_ep)),
                     summary_vars[3]: image,
-
                 })
 
                 writer.add_summary(summary_str, i)
@@ -438,6 +437,7 @@ def train_ddpg(args):
         state_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
         action_bound = env.action_space.high
+
         # %% MODELS
         actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
                              float(args['actor_lr']), float(args['tau']),

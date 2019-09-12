@@ -139,11 +139,13 @@ if __name__ == "__main__":
         else:
             args['buffer_path'] = None
         single_scenario = True if input(
-            "Choose training type:\n[0] Single Scenario\n[1] Multiple Scenarios\n") == 0 else False
+            "Choose training type:\n[0] Single Scenario\n[1] Multiple Scenarios\n") == '0' else False
         if single_scenario:
+            print("[INFO] Training on Single Scenario")
             train_ddpg(args)
         else:
             n_scenarios = 20
+            print(f"[INFO] Training on {n_scenarios} Scenarios")
             for i in tqdm(range(1, n_scenarios + 1)):
                 id = f'simglucose-adolescent2-v{i}'
                 register(id=id,
