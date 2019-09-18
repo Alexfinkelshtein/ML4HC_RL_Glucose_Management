@@ -87,18 +87,18 @@ class ActorNetwork(object):
         self.actor_gradients = list(map(lambda x: tf.div(x, self.batch_size), self.unnormalized_actor_gradients))
 
         # Optimization Op
-        self.optimize = tf.train.AdadeltaOptimizer(self.learning_rate). \
+        self.optimize = tf.train.RMSPropOptimizer(self.learning_rate). \
             apply_gradients(zip(self.actor_gradients, self.network_params))
 
         self.num_trainable_vars = len(self.network_params) + len(self.target_network_params)
 
     def create_actor_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        net = tflearn.fully_connected(inputs, 1200, weight_decay=0.01)
+        net = tflearn.fully_connected(inputs, 1200)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
 
-        net = tflearn.fully_connected(net, 900, weight_decay=0.01)
+        net = tflearn.fully_connected(net, 900)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
 
@@ -180,7 +180,7 @@ class CriticNetwork(object):
 
         # Define loss and optimization Op
         self.loss = tflearn.mean_square(self.predicted_q_value, self.out)
-        self.optimize = tf.train.AdadeltaOptimizer(
+        self.optimize = tf.train.AdamOptimizer(
             self.learning_rate).minimize(self.loss)
 
         # Get the gradient of the net w.r.t. the action.
@@ -323,7 +323,7 @@ def train(sess, env, args, actor, critic, actor_noise):
     #  OUR ASSUMPTIONS
     ins_bound_param = 15
 
-    for i in tqdm(range(int(args['max_episodes']))):
+    for i in tqdm(range(int(args['first_index']), int(args['first_index']) + int(args['max_episodes']))):
         T1DSimEnv = env.env.env
         s = env.reset()
         meal_times = [int(meal[0] * 60.0 / 3) for meal in T1DSimEnv.scenario.scenario]

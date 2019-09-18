@@ -101,22 +101,23 @@ if __name__ == "__main__":
     args = {
         'env': f'simglucose-adolescent{patient_number}-v0',
         'random_seed': 1234,
-        'actor_lr': 0.0005,
+        'actor_lr': 0.00001,
         'tau': 0.01,
-        'minibatch_size': 64,
-        'critic_lr': 0.0025,
+        'minibatch_size': 256,
+        'critic_lr': 0.00005,
         'gamma': 0.99,  # Discount factor acts as effective horizon: 1/(1-gamma) gamma = 0.98 -> horizon ~= 50 min
         'use_gym_monitor': True,
         'render_env': True,
         'monitor_dir': monitor_dir,
-        'buffer_size': 1000000,
+        'buffer_size': 10000,
         'summary_dir': current_summary_path,
-        'max_episodes': 2000,
+        'max_episodes': 1500,
         'max_episode_len': 60 * 24 / sensor_sample_time,
         'trained_models_path': (current_summary_path, 'test'),  # Format: (path, model extension e.g critic_test.joblib)
         # 'Load_models_path': None,  # if None train new models, otherwise load models from path actor\critic.joblib
         'Load_models_path': (load_path, 'test'),
         # if None train new models, otherwise load models from path actor\critic.joblib
+        'first_index': 0
     }
     current_time = str(dt.now())
     logging.info(f'Start Timestamp: {current_time}')
@@ -135,7 +136,11 @@ if __name__ == "__main__":
 
     if mode == 'train':
         if int(input("Load Buffer Memory?\n[0]No\n[1]Yes\n")):
-            args['buffer_path'] = P.join(base_path, 'Results', 'Buffer_memory')
+            try:
+                os.mkdir(P.join(current_summary_path, 'Buffer_memory'))
+            except:
+                pass
+            args['buffer_path'] = P.join(current_summary_path, 'Buffer_memory')
         else:
             args['buffer_path'] = None
         single_scenario = True if input(
@@ -144,7 +149,7 @@ if __name__ == "__main__":
             print("[INFO] Training on Single Scenario")
             train_ddpg(args)
         else:
-            n_scenarios = 20
+            n_scenarios = 10
             print(f"[INFO] Training on {n_scenarios} Scenarios")
             for i in tqdm(range(1, n_scenarios + 1)):
                 id = f'simglucose-adolescent2-v{i}'
@@ -161,6 +166,7 @@ if __name__ == "__main__":
                          )
                 gym_env = gym.make(id)
                 args['env'] = id
+                args['first_index'] = (i-1) * args['max_episodes']
                 train_ddpg(args)
                 args['Load_models_path'] = (current_summary_path, 'test')
     if mode == 'inference':
